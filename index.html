@@ -1,0 +1,2000 @@
+<!--
+Assumptions:
+- This is a standalone browser tool for converting common audio files to MP3.
+- Audio conversion runs locally through Web Audio + lamejs; video conversion uses browser playback capture + MediaRecorder. Files are not uploaded.
+- The page can be opened directly as an HTML file, but the browser must be able to load CDN scripts.
+- Very large audio files may be limited by browser memory.
+-->
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+      <title>音视频格式转换器</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --ink: #141614;
+      --muted: #656a63;
+      --paper: #f4f1e8;
+      --panel: #ffffff;
+      --panel-strong: #fffdf7;
+      --line: #d5d0c2;
+      --line-dark: #bcb5a5;
+      --soft: #eae5d8;
+      --mint: #0c8a72;
+      --mint-dark: #086455;
+      --amber: #c47b13;
+      --amber-soft: #f4cf92;
+      --red: #b33f34;
+      --night: #20252b;
+      --night-2: #14181d;
+      --shadow: 0 28px 80px rgba(24, 22, 16, 0.13);
+      --shadow-tight: 0 12px 28px rgba(24, 22, 16, 0.10);
+      --radius: 8px;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    html {
+      min-height: 100%;
+      background: var(--paper);
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      color: var(--ink);
+      font-family: "Aptos", "Segoe UI", "Microsoft YaHei", sans-serif;
+      background:
+        linear-gradient(115deg, rgba(255, 255, 255, 0.72) 0 24%, transparent 24% 100%),
+        linear-gradient(90deg, rgba(20, 22, 20, 0.045) 1px, transparent 1px) 0 0 / 42px 42px,
+        linear-gradient(0deg, rgba(20, 22, 20, 0.032) 1px, transparent 1px) 0 0 / 42px 42px,
+        linear-gradient(180deg, #fbfaf5 0%, #efeadf 100%),
+        var(--paper);
+    }
+
+    button,
+    input,
+    select {
+      font: inherit;
+    }
+
+    button {
+      border: 0;
+    }
+
+    .app {
+      position: relative;
+      z-index: 1;
+      width: min(1180px, calc(100% - 32px));
+      margin: 0 auto;
+      padding: 34px 0 44px;
+    }
+
+    .topbar {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      gap: 20px;
+      align-items: end;
+      margin-bottom: 22px;
+    }
+
+    .brand {
+      display: flex;
+      gap: 16px;
+      align-items: center;
+      min-width: 0;
+    }
+
+    .mark {
+      width: 52px;
+      height: 52px;
+      display: grid;
+      place-items: center;
+      flex: 0 0 auto;
+      color: #fff;
+      background:
+        linear-gradient(145deg, rgba(255, 255, 255, 0.12), transparent 34%),
+        var(--night);
+      border-radius: var(--radius);
+      box-shadow: inset 0 -10px 0 rgba(0, 0, 0, 0.16), var(--shadow-tight);
+    }
+
+    .mark svg {
+      width: 26px;
+      height: 26px;
+    }
+
+    .brand h1 {
+      margin: 0;
+      font-size: clamp(28px, 4vw, 48px);
+      line-height: 1;
+      letter-spacing: 0;
+      text-wrap: pretty;
+    }
+
+    .brand p {
+      margin: 7px 0 0;
+      color: var(--muted);
+      font-size: 15px;
+      line-height: 1.5;
+    }
+
+    .format-strip {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      margin-top: 12px;
+    }
+
+    .format-strip span {
+      min-height: 24px;
+      display: inline-flex;
+      align-items: center;
+      padding: 0 8px;
+      border: 1px solid rgba(20, 22, 20, 0.09);
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.62);
+      color: #4f554d;
+      font-size: 11px;
+      font-weight: 800;
+      box-shadow: 0 1px 0 rgba(255, 255, 255, 0.85) inset;
+    }
+
+    .status-pill {
+      min-height: 38px;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 12px;
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.78);
+      color: var(--muted);
+      font-size: 13px;
+      white-space: nowrap;
+      box-shadow: var(--shadow-tight);
+      backdrop-filter: blur(10px);
+    }
+
+    .status-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--amber);
+      box-shadow: 0 0 0 4px rgba(190, 114, 0, 0.13);
+    }
+
+    .status-pill.ready .status-dot {
+      background: var(--mint);
+      box-shadow: 0 0 0 4px rgba(13, 130, 108, 0.14);
+    }
+
+    .status-pill.error .status-dot {
+      background: var(--red);
+      box-shadow: 0 0 0 4px rgba(179, 63, 52, 0.13);
+    }
+
+    .mode-switch {
+      width: min(520px, 100%);
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 6px;
+      padding: 6px;
+      margin: -8px 0 20px;
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background: rgba(255, 253, 247, 0.78);
+      box-shadow: var(--shadow-tight);
+      backdrop-filter: blur(12px);
+    }
+
+    .mode-switch button {
+      min-height: 44px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      border-radius: 6px;
+      background: transparent;
+      color: var(--muted);
+      font-weight: 800;
+      cursor: pointer;
+      transition: background 140ms ease, color 140ms ease, box-shadow 140ms ease, transform 140ms ease;
+    }
+
+    .mode-switch button:hover {
+      transform: translateY(-1px);
+    }
+
+    .mode-switch button.active {
+      color: #fff;
+      background: linear-gradient(180deg, #2b3037, var(--night-2));
+      box-shadow: 0 9px 18px rgba(20, 24, 29, 0.2), inset 0 1px 0 rgba(255, 255, 255, 0.12);
+    }
+
+    .workspace {
+      display: grid;
+      grid-template-columns: minmax(340px, 0.88fr) minmax(390px, 1.12fr);
+      gap: 20px;
+      align-items: start;
+    }
+
+    .tool-panel,
+    .queue-panel {
+      background: rgba(255, 255, 255, 0.88);
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      backdrop-filter: blur(14px);
+    }
+
+    .tool-panel {
+      overflow: hidden;
+    }
+
+    .dropzone {
+      position: relative;
+      min-height: 280px;
+      display: grid;
+      place-items: center;
+      padding: 24px;
+      border-bottom: 1px solid var(--line);
+      background:
+        linear-gradient(90deg, rgba(12, 138, 114, 0.15) 1px, transparent 1px) 0 0 / 18px 100%,
+        linear-gradient(180deg, rgba(255, 255, 255, 0.95), rgba(248, 244, 233, 0.98));
+      outline: 0;
+      isolation: isolate;
+      transition: background 160ms ease, box-shadow 160ms ease, transform 160ms ease;
+    }
+
+    .dropzone::before {
+      content: "";
+      position: absolute;
+      inset: 18px;
+      border: 1px dashed rgba(12, 138, 114, 0.28);
+      border-radius: var(--radius);
+      pointer-events: none;
+      z-index: -1;
+    }
+
+    .dropzone::after {
+      content: "";
+      position: absolute;
+      inset: auto 0 0;
+      height: 9px;
+      background:
+        linear-gradient(90deg, var(--mint), var(--amber), var(--mint-dark));
+      opacity: 0.88;
+      pointer-events: none;
+    }
+
+    .dropzone.is-dragging {
+      background:
+        linear-gradient(90deg, rgba(12, 138, 114, 0.24) 1px, transparent 1px) 0 0 / 18px 100%,
+        linear-gradient(180deg, #ffffff, #edf7f2);
+      box-shadow: inset 0 0 0 2px var(--mint);
+      transform: translateY(-1px);
+    }
+
+    .drop-meters {
+      position: absolute;
+      left: 18px;
+      right: 18px;
+      bottom: 19px;
+      height: 40px;
+      display: grid;
+      grid-template-columns: repeat(18, 1fr);
+      align-items: end;
+      gap: 5px;
+      opacity: 0.18;
+      pointer-events: none;
+    }
+
+    .drop-meters span {
+      height: calc(var(--level) * 1%);
+      min-height: 8px;
+      border-radius: 3px 3px 0 0;
+      background: linear-gradient(180deg, var(--amber-soft), var(--mint));
+    }
+
+    .drop-content {
+      position: relative;
+      z-index: 1;
+      width: min(100%, 360px);
+      display: grid;
+      gap: 16px;
+      justify-items: center;
+      text-align: center;
+    }
+
+    .turntable {
+      position: relative;
+      width: 146px;
+      aspect-ratio: 1;
+      display: grid;
+      place-items: center;
+      border-radius: 50%;
+      background:
+        radial-gradient(circle at 50% 50%, #f9f5e8 0 8px, transparent 9px),
+        repeating-radial-gradient(circle at 50% 50%, rgba(255, 255, 255, 0.08) 0 2px, transparent 2px 15px),
+        radial-gradient(circle at 35% 28%, rgba(255, 255, 255, 0.18), transparent 34%),
+        var(--night);
+      box-shadow: inset 0 0 0 14px #15191e, 0 22px 44px rgba(32, 37, 43, 0.26);
+    }
+
+    .turntable::before {
+      content: "";
+      position: absolute;
+      inset: -12px;
+      border-radius: 50%;
+      background: conic-gradient(from -20deg, transparent 0 70%, rgba(196, 123, 19, 0.24), transparent 84% 100%);
+      filter: blur(0.2px);
+      z-index: -1;
+    }
+
+    .turntable::after {
+      content: "";
+      position: absolute;
+      right: -24px;
+      top: 16px;
+      width: 58px;
+      height: 11px;
+      border-radius: 999px;
+      transform: rotate(32deg);
+      transform-origin: right center;
+      background: linear-gradient(90deg, #dad4c5, #ffffff 48%, #9a927f);
+      box-shadow: 0 7px 12px rgba(20, 22, 20, 0.12);
+    }
+
+    .turntable i {
+      width: 14px;
+      height: 14px;
+      border-radius: 50%;
+      background: var(--amber);
+      box-shadow: 0 0 0 8px rgba(190, 114, 0, 0.16);
+    }
+
+    .drop-content h2 {
+      margin: 0;
+      font-size: 26px;
+      line-height: 1.12;
+      letter-spacing: 0;
+      text-wrap: pretty;
+    }
+
+    .drop-content p {
+      margin: 0;
+      color: var(--muted);
+      font-size: 14px;
+      line-height: 1.6;
+    }
+
+    .file-button {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 9px;
+      min-height: 42px;
+      padding: 0 18px;
+      border-radius: var(--radius);
+      background: linear-gradient(180deg, #10a184, var(--mint-dark));
+      color: #fff;
+      font-weight: 700;
+      cursor: pointer;
+      box-shadow: 0 10px 22px rgba(12, 138, 114, 0.24), inset 0 1px 0 rgba(255, 255, 255, 0.2);
+      transition: transform 140ms ease, filter 140ms ease;
+    }
+
+    .file-button:hover {
+      filter: brightness(0.96);
+      transform: translateY(-1px);
+    }
+
+    .file-input {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      overflow: hidden;
+      clip: rect(0, 0, 0, 0);
+    }
+
+    .settings {
+      padding: 20px;
+      display: grid;
+      gap: 17px;
+      background:
+        linear-gradient(180deg, rgba(255, 255, 255, 0.86), rgba(250, 247, 239, 0.86));
+    }
+
+    .settings-title,
+    .queue-title {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+    }
+
+    .settings-title h2,
+    .queue-title h2 {
+      margin: 0;
+      font-size: 17px;
+      line-height: 1.2;
+      letter-spacing: 0;
+    }
+
+    .hint {
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.4;
+    }
+
+    .control-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 12px;
+    }
+
+    .field {
+      min-width: 0;
+      display: grid;
+      gap: 8px;
+    }
+
+    .field label {
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: 0.04em;
+    }
+
+    .field select,
+    .field input[type="text"] {
+      width: 100%;
+      min-height: 40px;
+      padding: 0 12px;
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background: linear-gradient(180deg, #ffffff, #fbf9f2);
+      color: var(--ink);
+      outline: 0;
+      box-shadow: 0 1px 0 rgba(255, 255, 255, 0.9) inset;
+    }
+
+    .field select:focus,
+    .field input[type="text"]:focus {
+      border-color: var(--mint);
+      box-shadow: 0 0 0 3px rgba(13, 130, 108, 0.12);
+    }
+
+    .segmented {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 4px;
+      padding: 4px;
+      min-height: 40px;
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background: #e2dccf;
+      box-shadow: inset 0 1px 4px rgba(20, 22, 20, 0.08);
+    }
+
+    .segmented button {
+      border-radius: 6px;
+      background: transparent;
+      color: var(--muted);
+      cursor: pointer;
+      font-weight: 700;
+      transition: color 140ms ease, background 140ms ease, box-shadow 140ms ease;
+    }
+
+    .segmented button.active {
+      background: #fffdf8;
+      color: var(--ink);
+      box-shadow: 0 2px 8px rgba(23, 24, 22, 0.13), inset 0 1px 0 rgba(255, 255, 255, 0.85);
+    }
+
+    .toggles {
+      display: grid;
+      gap: 10px;
+    }
+
+    .toggle {
+      display: flex;
+      gap: 11px;
+      align-items: center;
+      padding: 10px 12px;
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background: #fffdf8;
+      cursor: pointer;
+      user-select: none;
+      transition: border-color 140ms ease, box-shadow 140ms ease;
+    }
+
+    .toggle:hover {
+      border-color: var(--line-dark);
+      box-shadow: 0 7px 18px rgba(20, 22, 20, 0.06);
+    }
+
+    .toggle input {
+      width: 18px;
+      height: 18px;
+      accent-color: var(--mint);
+      flex: 0 0 auto;
+    }
+
+    .toggle span {
+      min-width: 0;
+      font-size: 13px;
+      line-height: 1.35;
+    }
+
+    .video-note {
+      padding: 12px;
+      border: 1px solid rgba(12, 138, 114, 0.22);
+      border-radius: var(--radius);
+      background: linear-gradient(180deg, rgba(236, 250, 244, 0.85), rgba(255, 253, 247, 0.86));
+      color: #426157;
+      font-size: 13px;
+      line-height: 1.55;
+    }
+
+    .is-hidden {
+      display: none !important;
+    }
+
+    .actions {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      gap: 10px;
+      align-items: center;
+      padding-top: 4px;
+    }
+
+    .primary,
+    .secondary,
+    .icon-btn,
+    .download-link {
+      min-height: 42px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 9px;
+      border-radius: var(--radius);
+      text-decoration: none;
+      cursor: pointer;
+      transition: transform 140ms ease, background 140ms ease, opacity 140ms ease;
+    }
+
+    .primary {
+      padding: 0 16px;
+      background: linear-gradient(180deg, #2b3037, var(--night-2));
+      color: #fff;
+      font-weight: 800;
+      box-shadow: 0 12px 22px rgba(20, 24, 29, 0.24), inset 0 1px 0 rgba(255, 255, 255, 0.12);
+    }
+
+    .secondary,
+    .icon-btn {
+      border: 1px solid var(--line);
+      background: #fffdf8;
+      color: var(--ink);
+      font-weight: 700;
+      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.9);
+    }
+
+    .secondary {
+      padding: 0 14px;
+    }
+
+    .icon-btn {
+      width: 42px;
+      flex: 0 0 auto;
+    }
+
+    .primary:hover,
+    .secondary:hover,
+    .icon-btn:hover,
+    .download-link:hover {
+      transform: translateY(-1px);
+      filter: brightness(0.98);
+    }
+
+    .primary:disabled,
+    .secondary:disabled,
+    .icon-btn:disabled {
+      opacity: 0.48;
+      cursor: not-allowed;
+      transform: none;
+      filter: none;
+      box-shadow: none;
+    }
+
+    .queue-panel {
+      min-height: 560px;
+      display: grid;
+      grid-template-rows: auto auto minmax(0, 1fr);
+      overflow: hidden;
+    }
+
+    .queue-head {
+      padding: 20px 20px 18px;
+      border-bottom: 1px solid var(--line);
+      background:
+        linear-gradient(180deg, rgba(255, 255, 255, 0.96), rgba(246, 242, 232, 0.8));
+    }
+
+    .wave-wrap {
+      height: 126px;
+      border-bottom: 1px solid var(--line);
+      background:
+        linear-gradient(90deg, rgba(255, 255, 255, 0.06) 1px, transparent 1px) 0 0 / 18px 100%,
+        linear-gradient(180deg, var(--night), var(--night-2));
+      position: relative;
+      overflow: hidden;
+    }
+
+    .wave-wrap::after {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background:
+        linear-gradient(90deg, transparent 0 48%, rgba(244, 207, 146, 0.2) 50%, transparent 52%),
+        linear-gradient(180deg, rgba(255, 255, 255, 0.08), transparent 45%);
+      pointer-events: none;
+    }
+
+    canvas {
+      display: block;
+      width: 100%;
+      height: 100%;
+    }
+
+    .wave-empty {
+      position: absolute;
+      inset: 0;
+      display: grid;
+      place-items: center;
+      color: rgba(255, 255, 255, 0.62);
+      font-size: 13px;
+      pointer-events: none;
+    }
+
+    .queue-list {
+      min-height: 0;
+      overflow: auto;
+      padding: 12px;
+      display: grid;
+      align-content: start;
+      gap: 10px;
+    }
+
+    .empty {
+      height: 320px;
+      display: grid;
+      place-items: center;
+      border: 1px dashed var(--line);
+      border-radius: var(--radius);
+      color: var(--muted);
+      text-align: center;
+      padding: 22px;
+      line-height: 1.6;
+      background:
+        linear-gradient(180deg, rgba(255, 255, 255, 0.68), rgba(250, 247, 239, 0.82));
+    }
+
+    .track {
+      position: relative;
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      gap: 12px;
+      padding: 14px;
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background:
+        linear-gradient(180deg, #ffffff, #fbf8f0);
+      box-shadow: 0 8px 22px rgba(20, 22, 20, 0.06);
+      overflow: hidden;
+    }
+
+    .track::before {
+      content: "";
+      position: absolute;
+      inset: 0 0 auto;
+      height: 3px;
+      background: linear-gradient(90deg, var(--mint), var(--amber));
+      opacity: 0.76;
+    }
+
+    .track-main {
+      min-width: 0;
+      display: grid;
+      gap: 8px;
+    }
+
+    .track-name {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+      min-width: 0;
+      font-weight: 800;
+      line-height: 1.25;
+    }
+
+    .track-name svg {
+      color: var(--mint-dark);
+      flex: 0 0 auto;
+    }
+
+    .track-name span {
+      min-width: 0;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .track-meta {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.35;
+    }
+
+    .progress-shell {
+      height: 8px;
+      overflow: hidden;
+      border-radius: 99px;
+      background: #dfd7c7;
+      box-shadow: inset 0 1px 3px rgba(20, 22, 20, 0.1);
+    }
+
+    .progress-bar {
+      height: 100%;
+      width: 0%;
+      background: linear-gradient(90deg, var(--mint), #17a88a, var(--amber));
+      border-radius: inherit;
+      transition: width 180ms ease;
+    }
+
+    .track-actions {
+      display: flex;
+      align-items: start;
+      gap: 8px;
+    }
+
+    .download-link {
+      min-width: 42px;
+      padding: 0 11px;
+      background: linear-gradient(180deg, #11a887, var(--mint-dark));
+      color: #fff;
+      font-weight: 800;
+      box-shadow: 0 8px 16px rgba(12, 138, 114, 0.2), inset 0 1px 0 rgba(255, 255, 255, 0.22);
+    }
+
+    .download-link[aria-disabled="true"] {
+      opacity: 0.45;
+      pointer-events: none;
+    }
+
+    .log {
+      max-height: 86px;
+      overflow: auto;
+      padding: 9px 12px;
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background:
+        linear-gradient(180deg, #fffdf8, #f7f2e7);
+      color: var(--muted);
+      font-family: "Cascadia Mono", Consolas, monospace;
+      font-size: 11px;
+      line-height: 1.55;
+      white-space: pre-wrap;
+      box-shadow: inset 0 1px 5px rgba(20, 22, 20, 0.04);
+    }
+
+    .cartoon-scene {
+      position: fixed;
+      inset: 0;
+      overflow: hidden;
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    .cartoon-item {
+      position: absolute;
+      filter: drop-shadow(0 18px 28px rgba(24, 22, 16, 0.14));
+    }
+
+    .cartoon-cassette {
+      left: max(14px, calc((100vw - 1180px) / 2 - 138px));
+      top: 236px;
+      width: 116px;
+      height: 84px;
+      border: 3px solid #1b1f24;
+      border-radius: 18px;
+      background:
+        linear-gradient(90deg, transparent 0 23%, rgba(255, 255, 255, 0.52) 23% 27%, transparent 27% 73%, rgba(255, 255, 255, 0.52) 73% 77%, transparent 77% 100%),
+        linear-gradient(180deg, #fff5dc, #f0c67f 58%, #d88d45);
+      transform: rotate(-8deg);
+      animation: float-left 5.8s ease-in-out infinite;
+    }
+
+    .cartoon-cassette::before,
+    .cartoon-cassette::after {
+      content: "";
+      position: absolute;
+      top: 24px;
+      width: 24px;
+      height: 24px;
+      border: 4px solid #20252b;
+      border-radius: 50%;
+      background: radial-gradient(circle, #fffdf7 0 4px, #c47b13 5px 8px, transparent 9px);
+    }
+
+    .cartoon-cassette::before {
+      left: 20px;
+    }
+
+    .cartoon-cassette::after {
+      right: 20px;
+    }
+
+    .cassette-mouth {
+      position: absolute;
+      left: 38px;
+      right: 38px;
+      bottom: 16px;
+      height: 10px;
+      border: 3px solid #20252b;
+      border-top: 0;
+      border-radius: 0 0 18px 18px;
+    }
+
+    .cassette-leg {
+      position: absolute;
+      bottom: -18px;
+      width: 17px;
+      height: 20px;
+      border-radius: 0 0 9px 9px;
+      background: #20252b;
+    }
+
+    .cassette-leg.left {
+      left: 24px;
+      transform: rotate(8deg);
+    }
+
+    .cassette-leg.right {
+      right: 24px;
+      transform: rotate(-8deg);
+    }
+
+    .cartoon-bubble {
+      right: max(14px, calc((100vw - 1180px) / 2 - 134px));
+      top: 348px;
+      width: 118px;
+      height: 118px;
+      border: 3px solid #20252b;
+      border-radius: 36% 44% 42% 38%;
+      background:
+        radial-gradient(circle at 38% 42%, #20252b 0 5px, transparent 6px),
+        radial-gradient(circle at 64% 42%, #20252b 0 5px, transparent 6px),
+        linear-gradient(180deg, #fbfff8, #ccebdd);
+      transform: rotate(7deg);
+      animation: float-right 6.4s ease-in-out infinite;
+    }
+
+    .cartoon-bubble::before {
+      content: "";
+      position: absolute;
+      left: 11px;
+      right: 11px;
+      top: -18px;
+      height: 42px;
+      border: 8px solid #20252b;
+      border-bottom: 0;
+      border-radius: 42px 42px 0 0;
+    }
+
+    .cartoon-bubble::after {
+      content: "";
+      position: absolute;
+      left: 42px;
+      bottom: 28px;
+      width: 34px;
+      height: 15px;
+      border: 3px solid #20252b;
+      border-top: 0;
+      border-radius: 0 0 24px 24px;
+    }
+
+    .bubble-pad {
+      position: absolute;
+      top: 18px;
+      width: 20px;
+      height: 42px;
+      border-radius: 12px;
+      background: #20252b;
+    }
+
+    .bubble-pad.left {
+      left: -11px;
+    }
+
+    .bubble-pad.right {
+      right: -11px;
+    }
+
+    .music-note {
+      position: absolute;
+      display: grid;
+      place-items: center;
+      width: 42px;
+      height: 42px;
+      border: 2px solid rgba(32, 37, 43, 0.16);
+      border-radius: 50%;
+      background: rgba(255, 253, 247, 0.76);
+      color: var(--mint-dark);
+      font-size: 24px;
+      font-weight: 900;
+      box-shadow: 0 10px 20px rgba(24, 22, 16, 0.08);
+      animation: note-drift 7s ease-in-out infinite;
+    }
+
+    .music-note.one {
+      left: max(28px, calc((100vw - 1180px) / 2 - 78px));
+      top: 144px;
+    }
+
+    .music-note.two {
+      right: max(42px, calc((100vw - 1180px) / 2 - 62px));
+      top: 190px;
+      color: var(--amber);
+      animation-delay: -2s;
+    }
+
+    .music-note.three {
+      right: max(22px, calc((100vw - 1180px) / 2 - 110px));
+      bottom: 128px;
+      color: #356b88;
+      animation-delay: -4s;
+    }
+
+    @keyframes float-left {
+      0%, 100% { transform: translateY(0) rotate(-8deg); }
+      50% { transform: translateY(-12px) rotate(-5deg); }
+    }
+
+    @keyframes float-right {
+      0%, 100% { transform: translateY(0) rotate(7deg); }
+      50% { transform: translateY(13px) rotate(4deg); }
+    }
+
+    @keyframes note-drift {
+      0%, 100% { transform: translateY(0) rotate(-8deg); }
+      50% { transform: translateY(-14px) rotate(8deg); }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      .cartoon-cassette,
+      .cartoon-bubble,
+      .music-note {
+        animation: none;
+      }
+    }
+
+    .sr-only {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      overflow: hidden;
+      clip: rect(0, 0, 0, 0);
+      white-space: nowrap;
+    }
+
+    @media (max-width: 860px) {
+      .cartoon-scene {
+        display: none;
+      }
+
+      .topbar,
+      .workspace {
+        grid-template-columns: 1fr;
+      }
+
+      .status-pill {
+        justify-self: start;
+        white-space: normal;
+      }
+
+      .queue-panel {
+        min-height: 520px;
+      }
+    }
+
+    @media (max-width: 560px) {
+      .app {
+        width: min(100% - 20px, 1180px);
+        padding-top: 14px;
+      }
+
+      .brand {
+        align-items: start;
+        gap: 12px;
+      }
+
+      .mark {
+        width: 40px;
+        height: 40px;
+      }
+
+      .mark svg {
+        width: 21px;
+        height: 21px;
+      }
+
+      .brand h1 {
+        font-size: 29px;
+      }
+
+      .brand p {
+        font-size: 13px;
+      }
+
+      .format-strip {
+        gap: 5px;
+        margin-top: 9px;
+      }
+
+      .format-strip span {
+        min-height: 22px;
+        padding: 0 7px;
+        font-size: 10px;
+      }
+
+      .dropzone {
+        min-height: 284px;
+        padding: 18px;
+      }
+
+      .dropzone::before {
+        inset: 12px;
+      }
+
+      .drop-meters {
+        left: 12px;
+        right: 12px;
+        height: 34px;
+        gap: 3px;
+        opacity: 0.13;
+      }
+
+      .drop-content {
+        gap: 14px;
+      }
+
+      .turntable {
+        width: 112px;
+      }
+
+      .turntable::after {
+        right: -16px;
+        top: 12px;
+        width: 44px;
+        height: 9px;
+      }
+
+      .drop-content h2 {
+        font-size: 24px;
+      }
+
+      .drop-content p {
+        font-size: 13px;
+        max-width: 290px;
+      }
+
+      .control-grid,
+      .actions {
+        grid-template-columns: 1fr;
+      }
+
+      .settings {
+        padding: 18px;
+      }
+
+      .queue-head {
+        padding: 18px;
+      }
+
+      .wave-wrap {
+        height: 116px;
+      }
+
+      .track {
+        grid-template-columns: 1fr;
+      }
+
+      .track-actions {
+        align-items: center;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="cartoon-scene" aria-hidden="true">
+    <div class="cartoon-item music-note one">♪</div>
+    <div class="cartoon-item music-note two">♫</div>
+    <div class="cartoon-item music-note three">♬</div>
+    <div class="cartoon-item cartoon-cassette">
+      <span class="cassette-mouth"></span>
+      <span class="cassette-leg left"></span>
+      <span class="cassette-leg right"></span>
+    </div>
+    <div class="cartoon-item cartoon-bubble">
+      <span class="bubble-pad left"></span>
+      <span class="bubble-pad right"></span>
+    </div>
+  </div>
+  <main class="app">
+    <header class="topbar">
+      <div class="brand">
+        <div class="mark" aria-hidden="true"><i data-lucide="audio-lines"></i></div>
+        <div>
+          <h1 id="pageTitle">音视频转换器</h1>
+          <p id="pageSubtitle">拖入音频或视频文件，本地转换后直接下载，不上传服务器。</p>
+          <div id="formatStrip" class="format-strip" aria-hidden="true">
+            <span>WAV</span>
+            <span>FLAC</span>
+            <span>M4A</span>
+            <span>AAC</span>
+            <span>OGG</span>
+            <span>OPUS</span>
+          </div>
+        </div>
+      </div>
+      <div id="engineStatus" class="status-pill">
+        <span class="status-dot" aria-hidden="true"></span>
+        <span>转换核心待加载</span>
+      </div>
+    </header>
+
+    <div class="mode-switch" role="group" aria-label="转换模式">
+      <button type="button" class="active" data-mode="audio">
+        <i data-lucide="music-2"></i>
+        音频转 MP3
+      </button>
+      <button type="button" data-mode="video">
+        <i data-lucide="film"></i>
+        视频转 MP4
+      </button>
+    </div>
+
+    <section class="workspace" aria-label="音视频转换工作台">
+      <section class="tool-panel" aria-label="上传和转换设置">
+        <div id="dropzone" class="dropzone" tabindex="0">
+          <input id="fileInput" class="file-input" type="file" accept="audio/*,.flac,.m4a,.aac,.ogg,.opus,.wav,.aiff,.aif,.mp3" multiple>
+          <div class="drop-meters" aria-hidden="true">
+            <span style="--level: 30"></span>
+            <span style="--level: 58"></span>
+            <span style="--level: 42"></span>
+            <span style="--level: 74"></span>
+            <span style="--level: 36"></span>
+            <span style="--level: 88"></span>
+            <span style="--level: 54"></span>
+            <span style="--level: 66"></span>
+            <span style="--level: 46"></span>
+            <span style="--level: 92"></span>
+            <span style="--level: 38"></span>
+            <span style="--level: 70"></span>
+            <span style="--level: 52"></span>
+            <span style="--level: 84"></span>
+            <span style="--level: 44"></span>
+            <span style="--level: 62"></span>
+            <span style="--level: 34"></span>
+            <span style="--level: 76"></span>
+          </div>
+          <div class="drop-content">
+            <div class="turntable" aria-hidden="true"><i></i></div>
+            <div>
+              <h2 id="dropTitle">把音频放进来</h2>
+              <p id="dropHint">批量处理，不经过服务器。首次转换会加载 MP3 编码器。</p>
+            </div>
+            <label class="file-button" for="fileInput">
+              <i data-lucide="folder-open"></i>
+              <span id="fileButtonText">选择音频</span>
+            </label>
+          </div>
+        </div>
+
+        <div class="settings">
+          <div class="settings-title">
+            <h2>输出参数</h2>
+            <span id="settingsHint" class="hint">格式固定为 .mp3</span>
+          </div>
+
+          <div class="control-grid">
+            <div class="field" data-audio-only>
+              <label id="bitrateLabel" for="bitrate">比特率</label>
+              <select id="bitrate">
+                <option value="128">128 kbps</option>
+                <option value="192" selected>192 kbps</option>
+                <option value="256">256 kbps</option>
+                <option value="320">320 kbps</option>
+              </select>
+            </div>
+
+            <div class="field" data-audio-only>
+              <label for="sampleRate">采样率</label>
+              <select id="sampleRate">
+                <option value="">保持原采样率</option>
+                <option value="44100" selected>44.1 kHz</option>
+                <option value="48000">48 kHz</option>
+              </select>
+            </div>
+
+            <div class="field" data-audio-only>
+              <label>声道</label>
+              <div class="segmented" role="group" aria-label="声道">
+                <button type="button" class="active" data-channel="2">立体声</button>
+                <button type="button" data-channel="1">单声道</button>
+              </div>
+            </div>
+
+            <div class="field is-hidden" data-video-only>
+              <label for="videoQuality">视频质量</label>
+              <select id="videoQuality">
+                <option value="2500000">标准 2.5 Mbps</option>
+                <option value="5000000" selected>高清 5 Mbps</option>
+                <option value="8000000">高质量 8 Mbps</option>
+              </select>
+            </div>
+
+            <div class="field">
+              <label for="namePrefix">文件名前缀</label>
+              <input id="namePrefix" type="text" placeholder="可留空">
+            </div>
+          </div>
+
+          <div class="toggles">
+            <label class="toggle" data-audio-only>
+              <input id="normalizeAudio" type="checkbox">
+              <span>音量标准化，适合多首歌音量差异较大时使用</span>
+            </label>
+            <div class="video-note is-hidden" data-video-only>
+              视频转 MP4 使用浏览器可播放格式进行本地录制，转换速度接近视频时长；超大文件会比较吃内存。
+            </div>
+          </div>
+
+          <div class="actions">
+            <button id="convertAll" class="primary" type="button" disabled>
+              <i data-lucide="wand-sparkles"></i>
+              开始转换
+            </button>
+            <button id="clearAll" class="secondary" type="button" disabled>
+              <i data-lucide="trash-2"></i>
+              清空
+            </button>
+          </div>
+
+          <div id="log" class="log" aria-live="polite">等待选择文件。</div>
+        </div>
+      </section>
+
+      <section class="queue-panel" aria-label="转换队列">
+        <div class="queue-head">
+          <div class="queue-title">
+            <h2>队列</h2>
+            <span id="queueCount" class="hint">0 个文件</span>
+          </div>
+        </div>
+        <div class="wave-wrap">
+          <canvas id="waveform" width="1000" height="180" aria-hidden="true"></canvas>
+          <div id="waveEmpty" class="wave-empty">选择文件后显示音频波形</div>
+        </div>
+        <div id="queueList" class="queue-list">
+          <div class="empty">还没有音频。把文件拖到左侧区域，或点击「选择音频」。</div>
+        </div>
+      </section>
+    </section>
+  </main>
+
+  <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
+  <script src="https://unpkg.com/lamejs@1.2.1/lame.min.js"></script>
+  <script>
+    const els = {
+      dropzone: document.querySelector("#dropzone"),
+      fileInput: document.querySelector("#fileInput"),
+      pageTitle: document.querySelector("#pageTitle"),
+      pageSubtitle: document.querySelector("#pageSubtitle"),
+      formatStrip: document.querySelector("#formatStrip"),
+      dropTitle: document.querySelector("#dropTitle"),
+      dropHint: document.querySelector("#dropHint"),
+      fileButtonText: document.querySelector("#fileButtonText"),
+      settingsHint: document.querySelector("#settingsHint"),
+      bitrateLabel: document.querySelector("#bitrateLabel"),
+      videoQuality: document.querySelector("#videoQuality"),
+      engineStatus: document.querySelector("#engineStatus"),
+      convertAll: document.querySelector("#convertAll"),
+      clearAll: document.querySelector("#clearAll"),
+      queueList: document.querySelector("#queueList"),
+      queueCount: document.querySelector("#queueCount"),
+      bitrate: document.querySelector("#bitrate"),
+      sampleRate: document.querySelector("#sampleRate"),
+      namePrefix: document.querySelector("#namePrefix"),
+      normalizeAudio: document.querySelector("#normalizeAudio"),
+      log: document.querySelector("#log"),
+      waveform: document.querySelector("#waveform"),
+      waveEmpty: document.querySelector("#waveEmpty"),
+      channelButtons: Array.from(document.querySelectorAll("[data-channel]")),
+      modeButtons: Array.from(document.querySelectorAll("[data-mode]")),
+      audioOnly: Array.from(document.querySelectorAll("[data-audio-only]")),
+      videoOnly: Array.from(document.querySelectorAll("[data-video-only]")),
+    };
+
+    const state = {
+      queue: [],
+      mode: "audio",
+      audioEngineReady: false,
+      videoEngineReady: false,
+      engineLoading: false,
+      isConverting: false,
+      activeChannels: "2",
+      activeId: null,
+    };
+
+    const icon = (name, label) => `<i data-lucide="${name}" aria-hidden="true"></i><span class="sr-only">${label}</span>`;
+
+    function createId() {
+      return `${Date.now()}-${Math.random().toString(16).slice(2)}`;
+    }
+
+    function formatBytes(bytes) {
+      if (!bytes) return "0 B";
+      const units = ["B", "KB", "MB", "GB"];
+      const index = Math.min(Math.floor(Math.log(bytes) / Math.log(1024)), units.length - 1);
+      return `${(bytes / 1024 ** index).toFixed(index === 0 ? 0 : 1)} ${units[index]}`;
+    }
+
+    function baseName(name) {
+      return name.replace(/\.[^.]+$/, "");
+    }
+
+    function safeName(name) {
+      return name
+        .normalize("NFKD")
+        .replace(/[^\w\u4e00-\u9fa5.-]+/g, "_")
+        .replace(/^_+|_+$/g, "")
+        .slice(0, 90) || "audio";
+    }
+
+    function outputName(item) {
+      const prefix = els.namePrefix.value.trim();
+      const ext = item.mode === "video" ? "mp4" : "mp3";
+      const name = `${prefix ? `${prefix}_` : ""}${baseName(item.file.name)}.${ext}`;
+      return safeName(name);
+    }
+
+    function setStatus(type, text) {
+      els.engineStatus.className = `status-pill ${type || ""}`.trim();
+      els.engineStatus.querySelector("span:last-child").textContent = text;
+    }
+
+    function writeLog(message) {
+      const now = new Date().toLocaleTimeString("zh-CN", { hour12: false });
+      els.log.textContent = `[${now}] ${message}\n${els.log.textContent}`.slice(0, 2200);
+    }
+
+    function updateActions() {
+      const hasQueue = state.queue.length > 0;
+      els.convertAll.disabled = !hasQueue || state.isConverting;
+      els.clearAll.disabled = !hasQueue || state.isConverting;
+      els.queueCount.textContent = `${state.queue.length} 个文件`;
+    }
+
+    function renderQueue() {
+      if (!state.queue.length) {
+        els.queueList.innerHTML = state.mode === "video"
+          ? '<div class="empty">还没有视频。把文件拖到左侧区域，或点击「选择视频」。</div>'
+          : '<div class="empty">还没有音频。把文件拖到左侧区域，或点击「选择音频」。</div>';
+        updateActions();
+        return;
+      }
+
+      els.queueList.innerHTML = state.queue.map(item => {
+        const statusText = item.error || item.status;
+        const disabled = item.url ? "false" : "true";
+        const download = item.url
+          ? `<a class="download-link" href="${item.url}" download="${outputName(item)}">${icon("download", "下载")}</a>`
+          : `<a class="download-link" aria-disabled="${disabled}">${icon("download", "下载")}</a>`;
+        return `
+          <article class="track" data-id="${item.id}">
+            <div class="track-main">
+              <div class="track-name">
+                <i data-lucide="${item.url ? (item.mode === "video" ? "clapperboard" : "music") : item.error ? "circle-alert" : item.mode === "video" ? "file-video" : "file-audio"}" aria-hidden="true"></i>
+                <span title="${item.file.name}">${item.file.name}</span>
+              </div>
+              <div class="track-meta">
+                <span>${formatBytes(item.file.size)}</span>
+                <span>${statusText}</span>
+                ${item.outSize ? `<span>${item.mode === "video" ? "MP4" : "MP3"} ${formatBytes(item.outSize)}</span>` : ""}
+              </div>
+              <div class="progress-shell" aria-hidden="true">
+                <div class="progress-bar" style="width: ${Math.round(item.progress * 100)}%"></div>
+              </div>
+            </div>
+            <div class="track-actions">
+              ${item.url ? `<button class="icon-btn" type="button" data-play="${item.id}" title="${item.mode === "video" ? "预览" : "试听"}">${icon("play", item.mode === "video" ? "预览" : "试听")}</button>` : ""}
+              ${download}
+              <button class="icon-btn" type="button" data-remove="${item.id}" title="移除" ${state.isConverting ? "disabled" : ""}>${icon("x", "移除")}</button>
+            </div>
+          </article>`;
+      }).join("");
+
+      if (window.lucide) window.lucide.createIcons();
+      updateActions();
+    }
+
+    function addFiles(fileList) {
+      const matcher = state.mode === "video"
+        ? file => file.type.startsWith("video/") || /\.(mp4|webm|mov|m4v|ogv|avi|mkv)$/i.test(file.name)
+        : file => file.type.startsWith("audio/") || /\.(flac|m4a|aac|ogg|opus|wav|aiff?|mp3)$/i.test(file.name);
+      const files = Array.from(fileList).filter(matcher);
+      const skipped = fileList.length - files.length;
+
+      files.forEach(file => {
+        state.queue.push({
+          id: createId(),
+          file,
+          mode: state.mode,
+          progress: 0,
+          status: "等待转换",
+          error: "",
+          url: "",
+          outSize: 0,
+        });
+      });
+
+      if (files.length) {
+        writeLog(`已加入 ${files.length} 个${state.mode === "video" ? "视频" : "音频"}文件。`);
+        if (state.mode === "video") {
+          drawVideoPreview(files[0]);
+        } else {
+          drawWaveform(files[0]);
+        }
+      }
+      if (skipped) writeLog(`${skipped} 个文件不是可识别${state.mode === "video" ? "视频" : "音频"}，已跳过。`);
+      renderQueue();
+    }
+
+    async function loadEngine() {
+      if (state.mode === "audio" && state.audioEngineReady) return;
+      if (state.mode === "video" && state.videoEngineReady) return;
+
+      state.engineLoading = true;
+      setStatus("", state.mode === "video" ? "正在检查 MP4 转换能力" : "正在加载 MP3 编码器");
+      writeLog(state.mode === "video" ? "正在检查浏览器 MP4 录制能力。" : "正在加载 MP3 编码器。");
+
+      try {
+        if (state.mode === "audio" && !window.lamejs?.Mp3Encoder) {
+          throw new Error("lamejs 编码器未加载，请检查网络或稍后重试。");
+        }
+        if (state.mode === "video") {
+          const video = document.createElement("video");
+          if (!window.MediaRecorder || !("captureStream" in video)) {
+            throw new Error("当前浏览器不支持视频捕获录制，建议使用最新版 Edge 或 Chrome。");
+          }
+          if (!getSupportedMp4MimeType()) {
+            throw new Error("当前浏览器不支持录制 MP4。");
+          }
+          state.videoEngineReady = true;
+          setStatus("ready", "MP4 转换器已就绪");
+          writeLog("MP4 转换器已就绪。");
+        } else {
+          state.audioEngineReady = true;
+          setStatus("ready", "MP3 编码器已就绪");
+          writeLog("MP3 编码器已就绪。");
+        }
+      } catch (error) {
+        setStatus("error", state.mode === "video" ? "MP4 转换器不可用" : "MP3 编码器加载失败");
+        writeLog(`加载失败：${error.message || error}`);
+        throw error;
+      } finally {
+        state.engineLoading = false;
+      }
+    }
+
+    async function convertItem(item) {
+      state.activeId = item.id;
+      item.progress = 0.02;
+      item.status = "准备中";
+      item.error = "";
+      renderQueue();
+
+      try {
+        if (item.mode === "video") {
+          await convertVideoItem(item);
+          return;
+        }
+
+        item.status = "解码中";
+        renderQueue();
+        const decoded = await decodeAudioFile(item.file);
+        const channels = Number(state.activeChannels);
+        const targetRate = Number(els.sampleRate.value || decoded.sampleRate);
+        item.status = "重采样中";
+        item.progress = 0.18;
+        renderQueue();
+        const rendered = await renderAudio(decoded, channels, targetRate);
+        item.status = "编码中";
+        renderQueue();
+        const blob = encodeMp3(rendered, Number(els.bitrate.value), progress => {
+          item.progress = 0.2 + progress * 0.78;
+          item.status = `编码中 ${Math.round(item.progress * 100)}%`;
+          renderQueue();
+        });
+
+        if (item.url) URL.revokeObjectURL(item.url);
+        item.url = URL.createObjectURL(blob);
+        item.outSize = blob.size;
+        item.progress = 1;
+        item.status = "已完成";
+        writeLog(`${item.file.name} 已转换为 MP3。`);
+      } catch (error) {
+        item.progress = 0;
+        item.error = `失败：${error.message || error}`;
+        writeLog(`${item.file.name} 转换失败：${error.message || error}`);
+      } finally {
+        state.activeId = null;
+        renderQueue();
+      }
+    }
+
+    async function convertVideoItem(item) {
+      item.status = "读取视频";
+      item.progress = 0.04;
+      renderQueue();
+
+      const sourceUrl = URL.createObjectURL(item.file);
+      const video = document.createElement("video");
+      let audioContext = null;
+      video.src = sourceUrl;
+      video.preload = "auto";
+      video.playsInline = true;
+      video.muted = true;
+      video.style.position = "fixed";
+      video.style.left = "-9999px";
+      video.style.width = "1px";
+      video.style.height = "1px";
+      document.body.appendChild(video);
+
+      try {
+        await waitForMediaEvent(video, "loadedmetadata");
+        const duration = Number.isFinite(video.duration) && video.duration > 0 ? video.duration : 0;
+
+        let stream = video.captureStream();
+        try {
+          const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+          if (AudioContextClass) {
+            audioContext = new AudioContextClass();
+            const sourceNode = audioContext.createMediaElementSource(video);
+            const audioDestination = audioContext.createMediaStreamDestination();
+            sourceNode.connect(audioDestination);
+            stream = new MediaStream([
+              ...stream.getVideoTracks(),
+              ...audioDestination.stream.getAudioTracks(),
+            ]);
+            await audioContext.resume();
+          }
+        } catch {
+          stream = video.captureStream();
+        }
+
+        const mimeType = getSupportedMp4MimeType();
+        if (!mimeType) throw new Error("当前浏览器不支持 MP4 输出。");
+
+        const recorder = new MediaRecorder(stream, {
+          mimeType,
+          videoBitsPerSecond: Number(els.videoQuality.value),
+        });
+        const chunks = [];
+        recorder.ondataavailable = event => {
+          if (event.data && event.data.size) chunks.push(event.data);
+        };
+
+        const stopped = new Promise((resolve, reject) => {
+          recorder.onstop = resolve;
+          recorder.onerror = event => reject(event.error || new Error("视频录制失败。"));
+        });
+
+        item.status = "转换中";
+        recorder.start(1000);
+        await video.play();
+
+        await new Promise((resolve, reject) => {
+          const tick = () => {
+            if (video.ended) {
+              resolve();
+              return;
+            }
+            if (video.error) {
+              reject(new Error("浏览器无法解码此视频。"));
+              return;
+            }
+            item.progress = duration
+              ? Math.min(0.98, video.currentTime / duration)
+              : Math.min(0.95, item.progress + 0.004);
+            item.status = `转换中 ${Math.round(item.progress * 100)}%`;
+            renderQueue();
+            requestAnimationFrame(tick);
+          };
+          tick();
+        });
+
+        if (recorder.state !== "inactive") recorder.stop();
+        await stopped;
+
+        const blob = new Blob(chunks, { type: mimeType });
+        if (!blob.size) throw new Error("没有生成 MP4 数据。");
+        if (item.url) URL.revokeObjectURL(item.url);
+        item.url = URL.createObjectURL(blob);
+        item.outSize = blob.size;
+        item.progress = 1;
+        item.status = "已完成";
+        writeLog(`${item.file.name} 已转换为 MP4。`);
+      } finally {
+        video.pause();
+        video.removeAttribute("src");
+        video.load();
+        video.remove();
+        if (audioContext) await audioContext.close().catch(() => {});
+        URL.revokeObjectURL(sourceUrl);
+      }
+    }
+
+    function getSupportedMp4MimeType() {
+      const types = [
+        'video/mp4;codecs="avc1.42E01E,mp4a.40.2"',
+        "video/mp4",
+      ];
+      return types.find(type => window.MediaRecorder?.isTypeSupported(type)) || "";
+    }
+
+    function waitForMediaEvent(media, eventName) {
+      return new Promise((resolve, reject) => {
+        const cleanup = () => {
+          media.removeEventListener(eventName, onReady);
+          media.removeEventListener("error", onError);
+        };
+        const onReady = () => {
+          cleanup();
+          resolve();
+        };
+        const onError = () => {
+          cleanup();
+          reject(new Error("浏览器无法读取此媒体文件。"));
+        };
+        media.addEventListener(eventName, onReady, { once: true });
+        media.addEventListener("error", onError, { once: true });
+      });
+    }
+
+    async function convertAll() {
+      if (!state.queue.length || state.isConverting) return;
+      state.isConverting = true;
+      updateActions();
+
+      try {
+        await loadEngine();
+        for (const item of state.queue) {
+          if (!state.queue.includes(item)) continue;
+          await convertItem(item);
+        }
+      } catch {
+        state.queue.forEach(item => {
+          if (!item.url && !item.error) item.error = item.mode === "video" ? "MP4 转换器不可用" : "MP3 编码器不可用";
+        });
+        renderQueue();
+      } finally {
+        state.isConverting = false;
+        updateActions();
+      }
+    }
+
+    async function decodeAudioFile(file) {
+      const arrayBuffer = await file.arrayBuffer();
+      const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+      if (!AudioContextClass) throw new Error("当前浏览器不支持 Web Audio。");
+      const audioContext = new AudioContextClass();
+      try {
+        return await audioContext.decodeAudioData(arrayBuffer);
+      } finally {
+        await audioContext.close().catch(() => {});
+      }
+    }
+
+    async function renderAudio(decoded, channels, sampleRate) {
+      const length = Math.max(1, Math.ceil(decoded.duration * sampleRate));
+      const offline = new OfflineAudioContext(channels, length, sampleRate);
+      const source = offline.createBufferSource();
+      source.buffer = decoded;
+
+      if (els.normalizeAudio.checked) {
+        const gain = offline.createGain();
+        gain.gain.value = getNormalizeGain(decoded);
+        source.connect(gain);
+        gain.connect(offline.destination);
+      } else {
+        source.connect(offline.destination);
+      }
+
+      source.start(0);
+      return offline.startRendering();
+    }
+
+    function getNormalizeGain(buffer) {
+      let peak = 0;
+      for (let channel = 0; channel < buffer.numberOfChannels; channel++) {
+        const data = buffer.getChannelData(channel);
+        for (let i = 0; i < data.length; i++) {
+          const value = Math.abs(data[i]);
+          if (value > peak) peak = value;
+        }
+      }
+      if (!peak || peak >= 0.96) return 1;
+      return Math.min(0.96 / peak, 4);
+    }
+
+    function encodeMp3(buffer, bitrate, onProgress) {
+      const channels = buffer.numberOfChannels;
+      const encoder = new lamejs.Mp3Encoder(channels, buffer.sampleRate, bitrate);
+      const chunkSize = 1152;
+      const mp3Parts = [];
+      const left = buffer.getChannelData(0);
+      const right = channels > 1 ? buffer.getChannelData(1) : null;
+
+      for (let offset = 0; offset < left.length; offset += chunkSize) {
+        const leftChunk = floatToInt16(left.subarray(offset, offset + chunkSize));
+        const mp3Buffer = channels > 1
+          ? encoder.encodeBuffer(leftChunk, floatToInt16(right.subarray(offset, offset + chunkSize)))
+          : encoder.encodeBuffer(leftChunk);
+        if (mp3Buffer.length) mp3Parts.push(mp3Buffer);
+        if (offset % (chunkSize * 24) === 0) onProgress(Math.min(offset / left.length, 0.98));
+      }
+
+      const end = encoder.flush();
+      if (end.length) mp3Parts.push(end);
+      onProgress(1);
+      return new Blob(mp3Parts, { type: "audio/mpeg" });
+    }
+
+    function floatToInt16(floatData) {
+      const intData = new Int16Array(floatData.length);
+      for (let i = 0; i < floatData.length; i++) {
+        const sample = Math.max(-1, Math.min(1, floatData[i]));
+        intData[i] = sample < 0 ? sample * 0x8000 : sample * 0x7fff;
+      }
+      return intData;
+    }
+
+    async function drawWaveform(file) {
+      const ctx = els.waveform.getContext("2d");
+      const width = els.waveform.width;
+      const height = els.waveform.height;
+      ctx.clearRect(0, 0, width, height);
+      els.waveEmpty.style.display = "none";
+
+      try {
+        const buffer = await file.arrayBuffer();
+        const audioContext = new AudioContext();
+        const decoded = await audioContext.decodeAudioData(buffer.slice(0));
+        const data = decoded.getChannelData(0);
+        const step = Math.ceil(data.length / width);
+
+        ctx.fillStyle = "#252a31";
+        ctx.fillRect(0, 0, width, height);
+        ctx.strokeStyle = "#f4f1e8";
+        ctx.globalAlpha = 0.2;
+        ctx.beginPath();
+        ctx.moveTo(0, height / 2);
+        ctx.lineTo(width, height / 2);
+        ctx.stroke();
+        ctx.globalAlpha = 1;
+
+        for (let x = 0; x < width; x++) {
+          let min = 1;
+          let max = -1;
+          const start = x * step;
+          for (let j = 0; j < step && start + j < data.length; j++) {
+            const datum = data[start + j];
+            if (datum < min) min = datum;
+            if (datum > max) max = datum;
+          }
+          const y1 = ((1 + min) * height) / 2;
+          const y2 = ((1 + max) * height) / 2;
+          ctx.strokeStyle = x % 7 === 0 ? "#be7200" : "#19a489";
+          ctx.beginPath();
+          ctx.moveTo(x, y1);
+          ctx.lineTo(x, y2);
+          ctx.stroke();
+        }
+
+        await audioContext.close();
+      } catch {
+        ctx.fillStyle = "#252a31";
+        ctx.fillRect(0, 0, width, height);
+        els.waveEmpty.textContent = "此格式无法预览波形，但仍可尝试转换";
+        els.waveEmpty.style.display = "grid";
+      }
+    }
+
+    async function drawVideoPreview(file) {
+      const ctx = els.waveform.getContext("2d");
+      const width = els.waveform.width;
+      const height = els.waveform.height;
+      const url = URL.createObjectURL(file);
+      const video = document.createElement("video");
+      video.src = url;
+      video.muted = true;
+      video.preload = "metadata";
+      video.playsInline = true;
+      els.waveEmpty.style.display = "none";
+
+      try {
+        await waitForMediaEvent(video, "loadedmetadata");
+        video.currentTime = Math.min(0.1, Math.max(0, video.duration / 20));
+        await waitForMediaEvent(video, "seeked");
+        ctx.fillStyle = "#20252b";
+        ctx.fillRect(0, 0, width, height);
+        const ratio = Math.min(width / video.videoWidth, height / video.videoHeight);
+        const drawWidth = video.videoWidth * ratio;
+        const drawHeight = video.videoHeight * ratio;
+        const x = (width - drawWidth) / 2;
+        const y = (height - drawHeight) / 2;
+        ctx.drawImage(video, x, y, drawWidth, drawHeight);
+        ctx.fillStyle = "rgba(20, 24, 29, 0.58)";
+        ctx.fillRect(0, height - 38, width, 38);
+        ctx.fillStyle = "#fffdf7";
+        ctx.font = "22px Aptos, Segoe UI, sans-serif";
+        ctx.fillText(`${video.videoWidth} x ${video.videoHeight}`, 24, height - 13);
+      } catch {
+        ctx.fillStyle = "#20252b";
+        ctx.fillRect(0, 0, width, height);
+        els.waveEmpty.textContent = "此视频无法预览，但可尝试转换";
+        els.waveEmpty.style.display = "grid";
+      } finally {
+        video.removeAttribute("src");
+        video.load();
+        URL.revokeObjectURL(url);
+      }
+    }
+
+    function setMode(mode) {
+      if (state.isConverting || state.mode === mode) return;
+      clearQueue(false);
+      state.mode = mode;
+      const isVideo = mode === "video";
+
+      els.modeButtons.forEach(button => button.classList.toggle("active", button.dataset.mode === mode));
+      els.audioOnly.forEach(node => node.classList.toggle("is-hidden", isVideo));
+      els.videoOnly.forEach(node => node.classList.toggle("is-hidden", !isVideo));
+
+      els.pageTitle.textContent = isVideo ? "视频转 MP4" : "音频转 MP3";
+      els.pageSubtitle.textContent = isVideo
+        ? "拖入 WebM、MOV、M4V 等浏览器可播放视频，本地录制转换为 MP4。"
+        : "拖入 WAV、FLAC、M4A、AAC、OGG、OPUS 等音频，本地转换后直接下载。";
+      els.formatStrip.innerHTML = isVideo
+        ? "<span>WEBM</span><span>MOV</span><span>M4V</span><span>OGV</span><span>MP4</span>"
+        : "<span>WAV</span><span>FLAC</span><span>M4A</span><span>AAC</span><span>OGG</span><span>OPUS</span>";
+      els.dropTitle.textContent = isVideo ? "把视频放进来" : "把音频放进来";
+      els.dropHint.textContent = isVideo
+        ? "浏览器本地处理，转换速度接近视频实际时长。"
+        : "批量处理，不经过服务器。首次转换会加载 MP3 编码器。";
+      els.fileButtonText.textContent = isVideo ? "选择视频" : "选择音频";
+      els.settingsHint.textContent = isVideo ? "格式固定为 .mp4" : "格式固定为 .mp3";
+      els.bitrateLabel.textContent = isVideo ? "音频码率" : "比特率";
+      els.fileInput.accept = isVideo
+        ? "video/*,.mp4,.webm,.mov,.m4v,.ogv,.avi,.mkv"
+        : "audio/*,.flac,.m4a,.aac,.ogg,.opus,.wav,.aiff,.aif,.mp3";
+      els.waveEmpty.textContent = isVideo ? "选择文件后显示视频缩略图" : "选择文件后显示音频波形";
+      if (isVideo) {
+        setStatus(state.videoEngineReady ? "ready" : "", state.videoEngineReady ? "MP4 转换器已就绪" : "转换核心待加载");
+      } else {
+        setStatus(state.audioEngineReady ? "ready" : "", state.audioEngineReady ? "MP3 编码器已就绪" : "转换核心待加载");
+      }
+      writeLog(`已切换到${isVideo ? "视频转 MP4" : "音频转 MP3"}模式。`);
+      renderQueue();
+      if (window.lucide) window.lucide.createIcons();
+    }
+
+    function clearQueue(logMessage = true) {
+      state.queue.forEach(item => {
+        if (item.url) URL.revokeObjectURL(item.url);
+      });
+      state.queue = [];
+      els.waveEmpty.textContent = state.mode === "video" ? "选择文件后显示视频缩略图" : "选择文件后显示音频波形";
+      els.waveEmpty.style.display = "grid";
+      els.waveform.getContext("2d").clearRect(0, 0, els.waveform.width, els.waveform.height);
+      if (logMessage) writeLog("队列已清空。");
+      renderQueue();
+    }
+
+    els.fileInput.addEventListener("change", event => {
+      addFiles(event.target.files);
+      event.target.value = "";
+    });
+
+    ["dragenter", "dragover"].forEach(type => {
+      els.dropzone.addEventListener(type, event => {
+        event.preventDefault();
+        els.dropzone.classList.add("is-dragging");
+      });
+    });
+
+    ["dragleave", "drop"].forEach(type => {
+      els.dropzone.addEventListener(type, event => {
+        event.preventDefault();
+        els.dropzone.classList.remove("is-dragging");
+      });
+    });
+
+    els.dropzone.addEventListener("drop", event => addFiles(event.dataTransfer.files));
+
+    els.dropzone.addEventListener("keydown", event => {
+      if (event.key === "Enter" || event.key === " ") {
+        event.preventDefault();
+        els.fileInput.click();
+      }
+    });
+
+    els.channelButtons.forEach(button => {
+      button.addEventListener("click", () => {
+        state.activeChannels = button.dataset.channel;
+        els.channelButtons.forEach(entry => entry.classList.toggle("active", entry === button));
+      });
+    });
+
+    els.modeButtons.forEach(button => {
+      button.addEventListener("click", () => setMode(button.dataset.mode));
+    });
+
+    els.convertAll.addEventListener("click", convertAll);
+
+    els.clearAll.addEventListener("click", () => clearQueue());
+
+    els.queueList.addEventListener("click", event => {
+      const removeButton = event.target.closest("[data-remove]");
+      const playButton = event.target.closest("[data-play]");
+
+      if (removeButton && !state.isConverting) {
+        const id = removeButton.dataset.remove;
+        const item = state.queue.find(entry => entry.id === id);
+        if (item?.url) URL.revokeObjectURL(item.url);
+        state.queue = state.queue.filter(entry => entry.id !== id);
+        renderQueue();
+      }
+
+      if (playButton) {
+        const item = state.queue.find(entry => entry.id === playButton.dataset.play);
+        if (item?.url) {
+          if (item.mode === "video") {
+            window.open(item.url, "_blank", "noopener");
+          } else {
+            const audio = new Audio(item.url);
+            audio.play();
+          }
+        }
+      }
+    });
+
+    if (window.lucide) window.lucide.createIcons();
+    setMode("audio");
+    renderQueue();
+  </script>
+</body>
+</html>
