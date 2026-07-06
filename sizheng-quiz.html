@@ -1,0 +1,1874 @@
+﻿<!doctype html>
+<!--
+Huashu-design pass 1 assumptions:
+- 目标用户：正在准备《习近平新时代中国特色社会主义思想概论》课程考试的大学生。
+- 使用场景：电脑或手机浏览器离线刷题，重点是快速记忆高频概念、即时纠错、沉淀错题。
+- 信息架构：左侧高频考点和进度，右侧刷题主流程；移动端改为上下布局。
+- 内容边界：这是非官方学习练习题库，题目按公开教材/课堂常见口径整理，最终以任课教师和教材为准。
+- 设计策略：学习工具优先，不做宣传落地页；色彩采用纸面白、深墨、红色强调和少量青绿色反馈，避免单一红色铺满造成疲劳。
+-->
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>大学生新思想课程刷题</title>
+  <style>
+    :root {
+      --paper: #f7f3ea;
+      --panel: #fffdf8;
+      --ink: #1f2328;
+      --muted: #6d706c;
+      --line: #ded7c9;
+      --red: #b42318;
+      --red-soft: #fff0ed;
+      --green: #24745a;
+      --green-soft: #edf8f4;
+      --blue: #285f8f;
+      --blue-soft: #eef6ff;
+      --gold: #8b6418;
+      --shadow: 0 18px 60px rgba(43, 34, 17, .10);
+      --radius: 8px;
+    }
+
+    * { box-sizing: border-box; }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      color: var(--ink);
+      background:
+        linear-gradient(90deg, rgba(180, 35, 24, .045) 1px, transparent 1px),
+        linear-gradient(180deg, rgba(40, 95, 143, .035) 1px, transparent 1px),
+        var(--paper);
+      background-size: 28px 28px;
+      font-family: "Noto Serif SC", "Source Han Serif SC", "Songti SC", "SimSun", serif;
+      line-height: 1.7;
+    }
+
+    button, input, select {
+      font: inherit;
+    }
+
+    button {
+      min-height: 44px;
+      border: 1px solid var(--line);
+      background: var(--panel);
+      color: var(--ink);
+      border-radius: var(--radius);
+      padding: 9px 14px;
+      cursor: pointer;
+      transition: transform .18s ease, border-color .18s ease, background .18s ease, color .18s ease;
+    }
+
+    button:hover {
+      transform: translateY(-1px);
+      border-color: color-mix(in oklch, var(--red) 45%, var(--line));
+    }
+
+    button.primary {
+      background: var(--red);
+      border-color: var(--red);
+      color: white;
+      font-weight: 700;
+    }
+
+    button.ghost {
+      background: transparent;
+    }
+
+    button.small {
+      min-height: 36px;
+      padding: 6px 10px;
+      font-size: 13px;
+    }
+
+    button.active {
+      background: var(--ink);
+      border-color: var(--ink);
+      color: white;
+    }
+
+    button:disabled {
+      opacity: .45;
+      cursor: not-allowed;
+      transform: none;
+    }
+
+    .shell {
+      width: min(1440px, calc(100vw - 32px));
+      margin: 0 auto;
+      padding: 28px 0 36px;
+    }
+
+    .masthead {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      gap: 20px;
+      align-items: end;
+      padding: 22px 0 24px;
+      border-bottom: 2px solid var(--ink);
+    }
+
+    .eyebrow {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      color: var(--red);
+      font-size: 13px;
+      font-weight: 800;
+      letter-spacing: 0;
+    }
+
+    .eyebrow::before {
+      content: "";
+      width: 22px;
+      height: 2px;
+      background: var(--red);
+      display: inline-block;
+    }
+
+    h1 {
+      margin: 8px 0 6px;
+      max-width: 900px;
+      font-size: clamp(34px, 5vw, 72px);
+      line-height: 1.05;
+      letter-spacing: 0;
+      text-wrap: balance;
+    }
+
+    .subtitle {
+      max-width: 760px;
+      margin: 0;
+      color: var(--muted);
+      font-size: 16px;
+      text-wrap: pretty;
+    }
+
+    .source-note {
+      max-width: 340px;
+      color: var(--muted);
+      font-size: 13px;
+      border-top: 1px solid var(--line);
+      padding-top: 10px;
+    }
+
+    .source-card {
+      max-width: 390px;
+      display: grid;
+      gap: 12px;
+      align-self: stretch;
+      align-content: end;
+    }
+
+    .icon-strip {
+      display: grid;
+      grid-template-columns: repeat(5, 58px);
+      gap: 8px;
+      justify-content: end;
+    }
+
+    .cartoon-icon {
+      width: 58px;
+      height: 58px;
+      display: grid;
+      place-items: center;
+      border: 1px solid var(--line);
+      border-radius: 16px;
+      background: color-mix(in oklch, var(--panel) 86%, white);
+      box-shadow: 0 10px 26px rgba(43, 34, 17, .08);
+    }
+
+    .cartoon-icon svg {
+      width: 46px;
+      height: 46px;
+      display: block;
+    }
+
+    .cartoon-icon .ink { stroke: var(--ink); }
+    .cartoon-icon .red { fill: var(--red); }
+    .cartoon-icon .gold { fill: #d8a83b; }
+    .cartoon-icon .blue { fill: var(--blue); }
+    .cartoon-icon .green { fill: var(--green); }
+    .cartoon-icon .paper { fill: #fff8e8; }
+
+    .panel-title {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .title-mark {
+      width: 26px;
+      height: 26px;
+      display: inline-grid;
+      place-items: center;
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      background: var(--red-soft);
+      flex: 0 0 auto;
+    }
+
+    .title-mark svg {
+      width: 18px;
+      height: 18px;
+      display: block;
+    }
+
+    .layout {
+      display: grid;
+      grid-template-columns: 330px minmax(0, 1fr);
+      gap: 22px;
+      margin-top: 22px;
+      align-items: start;
+    }
+
+    .sidebar {
+      position: sticky;
+      top: 14px;
+      display: grid;
+      gap: 14px;
+    }
+
+    .panel {
+      background: color-mix(in oklch, var(--panel) 92%, white);
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      overflow: hidden;
+    }
+
+    .panel-head {
+      padding: 16px 18px 12px;
+      border-bottom: 1px solid var(--line);
+    }
+
+    .panel-title {
+      margin: 0;
+      font-size: 18px;
+      line-height: 1.35;
+    }
+
+    .panel-body {
+      padding: 16px 18px 18px;
+    }
+
+    .stats {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      border-bottom: 1px solid var(--line);
+    }
+
+    .stat {
+      padding: 14px 10px;
+      text-align: center;
+      border-right: 1px solid var(--line);
+    }
+
+    .stat:last-child { border-right: 0; }
+
+    .stat strong {
+      display: block;
+      font-size: 24px;
+      line-height: 1.1;
+    }
+
+    .stat span {
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    .progress {
+      height: 10px;
+      background: #ebe4d6;
+      border-radius: 999px;
+      overflow: hidden;
+      margin-top: 12px;
+    }
+
+    .progress i {
+      display: block;
+      height: 100%;
+      width: 0%;
+      background: linear-gradient(90deg, var(--red), var(--gold));
+      transition: width .3s ease;
+    }
+
+    .topic-list {
+      display: grid;
+      gap: 8px;
+    }
+
+    .topic {
+      width: 100%;
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 10px;
+      text-align: left;
+      align-items: center;
+      min-height: 42px;
+      background: transparent;
+    }
+
+    .topic span:first-child {
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .topic b {
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 500;
+    }
+
+    .point-grid {
+      display: grid;
+      gap: 11px;
+    }
+
+    .point {
+      border-bottom: 1px solid var(--line);
+      padding-bottom: 11px;
+    }
+
+    .point:last-child {
+      border-bottom: 0;
+      padding-bottom: 0;
+    }
+
+    .point h3 {
+      margin: 0 0 5px;
+      font-size: 15px;
+      line-height: 1.45;
+    }
+
+    .point p {
+      margin: 0;
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.6;
+    }
+
+    .main {
+      min-width: 0;
+      display: grid;
+      gap: 16px;
+    }
+
+    .toolbar {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 12px;
+      align-items: center;
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      padding: 12px;
+      box-shadow: var(--shadow);
+    }
+
+    .seg {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+
+    .command-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      justify-content: flex-end;
+    }
+
+    .command-row button.active {
+      background: var(--red-soft);
+      border-color: color-mix(in oklch, var(--red) 42%, var(--line));
+      color: var(--red);
+    }
+
+    .quiz {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      min-height: 560px;
+      overflow: hidden;
+    }
+
+    .quiz.done {
+      display: none;
+    }
+
+    .quiz-top {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 12px;
+      padding: 18px 20px;
+      border-bottom: 1px solid var(--line);
+      align-items: center;
+    }
+
+    .badge-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      min-height: 28px;
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      padding: 2px 10px;
+      font-size: 12px;
+      color: var(--muted);
+      background: #faf7ef;
+      white-space: nowrap;
+    }
+
+    .badge.red {
+      border-color: color-mix(in oklch, var(--red) 25%, var(--line));
+      background: var(--red-soft);
+      color: var(--red);
+      font-weight: 700;
+    }
+
+    .quiz-body {
+      padding: 24px 24px 18px;
+    }
+
+    .question {
+      margin: 0 0 22px;
+      font-size: clamp(22px, 3vw, 34px);
+      line-height: 1.35;
+      text-wrap: pretty;
+    }
+
+    .options {
+      display: grid;
+      gap: 10px;
+    }
+
+    .option {
+      display: grid;
+      grid-template-columns: 34px 1fr;
+      gap: 12px;
+      align-items: start;
+      width: 100%;
+      min-height: 58px;
+      padding: 13px 14px;
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background: #fffaf1;
+      text-align: left;
+    }
+
+    .option:hover {
+      transform: none;
+      border-color: color-mix(in oklch, var(--blue) 40%, var(--line));
+    }
+
+    .mark {
+      width: 30px;
+      height: 30px;
+      display: inline-grid;
+      place-items: center;
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      color: var(--muted);
+      background: white;
+      font-weight: 800;
+      line-height: 1;
+    }
+
+    .option.selected {
+      border-color: var(--blue);
+      background: var(--blue-soft);
+    }
+
+    .option.selected .mark {
+      border-color: var(--blue);
+      color: white;
+      background: var(--blue);
+    }
+
+    .option.correct {
+      border-color: var(--green);
+      background: var(--green-soft);
+    }
+
+    .option.correct .mark {
+      border-color: var(--green);
+      color: white;
+      background: var(--green);
+    }
+
+    .option.wrong {
+      border-color: var(--red);
+      background: var(--red-soft);
+    }
+
+    .option.wrong .mark {
+      border-color: var(--red);
+      color: white;
+      background: var(--red);
+    }
+
+    .option.locked {
+      cursor: default;
+    }
+
+    .feedback {
+      display: none;
+      margin-top: 18px;
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background: #fbf7ee;
+      padding: 14px 16px;
+    }
+
+    .feedback.show {
+      display: block;
+    }
+
+    .feedback strong {
+      display: block;
+      margin-bottom: 5px;
+      color: var(--ink);
+    }
+
+    .feedback p {
+      margin: 0;
+      color: var(--muted);
+    }
+
+    .quiz-actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      justify-content: space-between;
+      align-items: center;
+      padding: 18px 24px 24px;
+    }
+
+    .left-actions, .right-actions {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .review {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 14px;
+    }
+
+    .result {
+      display: none;
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      padding: 24px;
+    }
+
+    .result.show {
+      display: grid;
+      gap: 18px;
+    }
+
+    .score {
+      display: grid;
+      grid-template-columns: auto 1fr;
+      gap: 18px;
+      align-items: center;
+    }
+
+    .score-number {
+      width: 128px;
+      height: 128px;
+      display: grid;
+      place-items: center;
+      border: 2px solid var(--red);
+      border-radius: 50%;
+      color: var(--red);
+      font-size: 40px;
+      font-weight: 900;
+      line-height: 1;
+      background: var(--red-soft);
+    }
+
+    .score-copy h2 {
+      margin: 0 0 4px;
+      font-size: clamp(24px, 6vw, 42px);
+      line-height: 1.2;
+    }
+
+    .score-copy p {
+      margin: 0;
+      color: var(--muted);
+    }
+
+    .result-actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+
+    .review-block {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      padding: 16px;
+      box-shadow: var(--shadow);
+    }
+
+    .review-block h2 {
+      margin: 0 0 10px;
+      font-size: 18px;
+    }
+
+    .mini-list {
+      display: grid;
+      gap: 8px;
+      max-height: 300px;
+      overflow: auto;
+      padding-right: 4px;
+    }
+
+    .mini-item {
+      display: grid;
+      gap: 4px;
+      padding: 10px;
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background: #fffaf1;
+    }
+
+    .mini-item button {
+      width: fit-content;
+    }
+
+    .empty {
+      color: var(--muted);
+      font-size: 14px;
+    }
+
+    .footer-note {
+      color: var(--muted);
+      font-size: 12px;
+      text-align: center;
+      padding: 14px 0 0;
+    }
+
+    @media (max-width: 980px) {
+      .masthead, .layout, .toolbar, .quiz-top, .review {
+        grid-template-columns: 1fr;
+      }
+
+      .source-card {
+        max-width: none;
+        align-content: start;
+      }
+
+      .icon-strip {
+        justify-content: start;
+      }
+
+      .sidebar {
+        position: static;
+      }
+
+      .command-row {
+        justify-content: flex-start;
+      }
+    }
+
+    @media (max-width: 620px) {
+      .shell {
+        width: 100%;
+        padding: 0 10px 18px;
+      }
+
+      .masthead {
+        padding-top: 10px;
+      }
+
+      .source-note {
+        max-width: none;
+      }
+
+      .source-card {
+        gap: 8px;
+      }
+
+      .icon-strip {
+        grid-template-columns: repeat(5, 1fr);
+        gap: 6px;
+      }
+
+      .cartoon-icon {
+        width: 100%;
+        height: 46px;
+        border-radius: 12px;
+      }
+
+      .cartoon-icon svg {
+        width: 36px;
+        height: 36px;
+      }
+
+      .quiz-body, .quiz-actions {
+        padding-left: 14px;
+        padding-right: 14px;
+      }
+
+      .option {
+        grid-template-columns: 30px 1fr;
+        padding: 12px;
+      }
+
+      .stats {
+        grid-template-columns: 1fr 1fr 1fr;
+      }
+
+      .toolbar,
+      .quiz,
+      .result,
+      .review-block,
+      .panel {
+        box-shadow: 0 10px 26px rgba(43, 34, 17, .08);
+      }
+
+      .question {
+        font-size: 21px;
+      }
+
+      .quiz-top {
+        padding: 14px;
+      }
+
+      .quiz-actions {
+        position: sticky;
+        bottom: 0;
+        background: color-mix(in oklch, var(--panel) 92%, transparent);
+        backdrop-filter: blur(14px);
+        border-top: 1px solid var(--line);
+      }
+
+      .left-actions,
+      .right-actions,
+      .quiz-actions button {
+        width: 100%;
+      }
+
+      .score {
+        grid-template-columns: 1fr;
+      }
+
+      .score-number {
+        width: 108px;
+        height: 108px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main class="shell">
+    <header class="masthead">
+      <div>
+        <div class="eyebrow">高校思政课练习题库</div>
+        <h1>大学生新思想课程刷题</h1>
+        <p class="subtitle">按高频考点整理单选题、多选题、判断题。每轮从大题库随机抽 60 道，点选即判定，做完自动按 100 分制出分，适合手机期末冲刺。</p>
+      </div>
+      <div class="source-card">
+        <div class="icon-strip" aria-hidden="true">
+          <span class="cartoon-icon">
+            <svg viewBox="0 0 64 64" role="img">
+              <path class="paper" d="M14 15h15c4 0 7 3 7 7v29c0-4-3-7-7-7H14z"/>
+              <path class="paper" d="M50 15H36c-4 0-7 3-7 7v29c0-4 3-7 7-7h14z"/>
+              <path class="ink" d="M14 15h15c4 0 7 3 7 7v29c0-4-3-7-7-7H14zM50 15H36c-4 0-7 3-7 7v29c0-4 3-7 7-7h14z" fill="none" stroke-width="3" stroke-linejoin="round"/>
+              <path class="red" d="M22 24h8v4h-8zM40 24h5v4h-5z"/>
+            </svg>
+          </span>
+          <span class="cartoon-icon">
+            <svg viewBox="0 0 64 64" role="img">
+              <path class="ink" d="M20 52V13" fill="none" stroke-width="4" stroke-linecap="round"/>
+              <path class="red" d="M22 14c9-5 15 5 25 0v24c-10 5-16-5-25 0z"/>
+              <path class="gold" d="M30 18l2 4 4 .5-3 3 .8 4.2-3.8-2-3.8 2 .8-4.2-3-3 4-.5z"/>
+              <path class="ink" d="M22 14c9-5 15 5 25 0v24c-10 5-16-5-25 0z" fill="none" stroke-width="3" stroke-linejoin="round"/>
+            </svg>
+          </span>
+          <span class="cartoon-icon">
+            <svg viewBox="0 0 64 64" role="img">
+              <path class="blue" d="M32 10l18 7v12c0 12-7 20-18 25-11-5-18-13-18-25V17z"/>
+              <path class="paper" d="M25 30l5 5 11-13 4 4-15 17-9-9z"/>
+              <path class="ink" d="M32 10l18 7v12c0 12-7 20-18 25-11-5-18-13-18-25V17z" fill="none" stroke-width="3" stroke-linejoin="round"/>
+            </svg>
+          </span>
+          <span class="cartoon-icon">
+            <svg viewBox="0 0 64 64" role="img">
+              <path class="paper" d="M18 16h28a6 6 0 0 1 0 12H18a6 6 0 0 1 0-12zM18 28h28v20H18z"/>
+              <path class="gold" d="M17 48h30a5 5 0 0 1 0 10H17a5 5 0 0 1 0-10z"/>
+              <path class="ink" d="M18 16h28a6 6 0 0 1 0 12H18a6 6 0 0 1 0-12zM18 28h28v20H18M17 48h30a5 5 0 0 1 0 10H17a5 5 0 0 1 0-10z" fill="none" stroke-width="3" stroke-linejoin="round"/>
+              <path class="red" d="M25 34h14v4H25z"/>
+            </svg>
+          </span>
+          <span class="cartoon-icon">
+            <svg viewBox="0 0 64 64" role="img">
+              <path class="gold" d="M20 54h24l-4-28H24z"/>
+              <path class="red" d="M25 26h14l-7-14z"/>
+              <path class="paper" d="M28 38a4 4 0 1 0 8 0 4 4 0 0 0-8 0z"/>
+              <path class="ink" d="M20 54h24l-4-28H24zM25 26h14l-7-14z" fill="none" stroke-width="3" stroke-linejoin="round"/>
+              <path class="ink" d="M16 54h32" fill="none" stroke-width="3" stroke-linecap="round"/>
+            </svg>
+          </span>
+        </div>
+        <div class="source-note">非官方学习工具。题目依据公开教材信息和课堂常见知识点整理，考试表述请以任课教师、教材和学校题库为准。</div>
+      </div>
+    </header>
+
+    <section class="layout">
+      <aside class="sidebar">
+        <section class="panel">
+          <div class="stats">
+            <div class="stat"><strong id="sDone">0</strong><span>已答</span></div>
+            <div class="stat"><strong id="sRate">0%</strong><span>正确率</span></div>
+            <div class="stat"><strong id="sWrong">0</strong><span>错题</span></div>
+          </div>
+          <div class="panel-body">
+            <div class="badge-row">
+              <span class="badge red" id="sScope">全部题型</span>
+              <span class="badge" id="sTotal">0 题</span>
+            </div>
+            <div class="progress"><i id="bar"></i></div>
+          </div>
+        </section>
+
+        <section class="panel">
+          <div class="panel-head">
+            <h2 class="panel-title">
+              <span class="title-mark" aria-hidden="true">
+                <svg viewBox="0 0 24 24">
+                  <path d="M7 4h10v16l-5-3-5 3z" fill="#b42318"/>
+                  <path d="M7 4h10v16l-5-3-5 3z" fill="none" stroke="#1f2328" stroke-width="1.6" stroke-linejoin="round"/>
+                </svg>
+              </span>
+              高频考点速记
+            </h2>
+          </div>
+          <div class="panel-body point-grid" id="pointGrid"></div>
+        </section>
+      </aside>
+
+      <section class="main">
+        <div class="toolbar">
+          <div class="seg">
+            <button class="small active" id="btnCourseXsd">新思想</button>
+            <button class="small" id="btnCourseMao">毛中特</button>
+            <button class="small" id="btnCourseHistory">近现代史</button>
+            <button class="small" id="btnCourseMarx">马原</button>
+            <button class="small" id="btnCourseEthics">思法</button>
+            <span class="badge red">强制 60 题</span>
+            <span class="badge">全题库随机抽取</span>
+          </div>
+          <div class="command-row">
+            <button class="small" id="btnWrong">本轮错题</button>
+            <button class="small" id="btnShuffle">重新抽一轮</button>
+            <button class="small ghost" id="btnReset">清空进度</button>
+          </div>
+        </div>
+
+        <article class="quiz" aria-live="polite">
+          <div class="quiz-top">
+            <div class="badge-row" id="questionMeta"></div>
+            <div class="badge" id="counter">第 1 / 1 题</div>
+          </div>
+          <div class="quiz-body">
+            <h2 class="question" id="questionText">加载中</h2>
+            <div class="options" id="options"></div>
+            <div class="feedback" id="feedback"></div>
+          </div>
+          <div class="quiz-actions">
+            <div class="left-actions">
+              <button id="btnStar">收藏本题</button>
+            </div>
+            <div class="right-actions">
+              <button id="btnNext">下一题</button>
+            </div>
+          </div>
+        </article>
+
+        <section class="result" id="resultPanel">
+          <div class="score">
+            <div class="score-number" id="scoreNumber">0</div>
+            <div class="score-copy">
+              <h2 id="scoreTitle">本轮完成</h2>
+              <p id="scoreText">60 道题已完成，满分 100 分。</p>
+            </div>
+          </div>
+          <div class="result-actions">
+            <button class="primary" id="btnRestart">重新开始刷题</button>
+            <button id="btnReviewWrong">查看本轮错题解析</button>
+          </div>
+        </section>
+
+        <section class="review">
+          <div class="review-block">
+            <h2>本轮错题解析</h2>
+            <div class="mini-list" id="wrongBox"></div>
+          </div>
+          <div class="review-block">
+            <h2>收藏重点</h2>
+            <div class="mini-list" id="favBox"></div>
+          </div>
+        </section>
+      </section>
+    </section>
+
+  </main>
+
+  <script>
+    const POINTS = {
+      xsd: [
+        { h: "核心提纲", p: "常考「十个明确」「十四个坚持」「十三个方面成就」「六个必须坚持」之间的定位差异。" },
+        { h: "世界观方法论", p: "「六个必须坚持」是理解这一思想的立场观点方法，高频考法是多选全选与错项识别。" },
+        { h: "总体布局与战略布局", p: "「五位一体」对应经济、政治、文化、社会、生态文明；「四个全面」对应现代化国家、改革、法治、从严治党。" },
+        { h: "人民立场", p: "人民至上、以人民为中心、共同富裕、全过程人民民主常被组合命题。" },
+        { h: "现代化与发展", p: "中国式现代化、高质量发展、新发展理念、新发展格局、统筹发展和安全是经济建设高频区。" },
+        { h: "专项思想", p: "法治、文化、生态文明、强军、外交、国家安全等常以目标、原则、关键词辨析出题。" }
+      ],
+      mao: [
+        { h: "新民主主义革命", p: "重点辨析社会性质、主要矛盾、革命对象、动力、领导力量、革命道路和三大法宝。" },
+        { h: "社会主义改造", p: "高频考「一化三改」、农业合作化、手工业改造、和平赎买、公私合营和1956年制度确立。" },
+        { h: "建设道路探索", p: "《论十大关系》、人民内部矛盾、社会主义社会基本矛盾和工业化道路是常见考点。" },
+        { h: "邓小平理论", p: "抓住社会主义本质、初级阶段、基本路线、三个有利于、市场经济、一国两制。" },
+        { h: "三个代表与科学发展观", p: "常考三个代表内容、立党之本，以及科学发展观的第一要义、核心立场、基本要求、根本方法。" },
+        { h: "综合辨析", p: "毛泽东思想活的灵魂、群众路线、独立自主、改革发展稳定关系等容易混合出题。" }
+      ],
+      history: [
+        { h: "近代国情与任务", p: "半殖民地半封建社会、两大主要矛盾、两大历史任务是全书基础题眼。" },
+        { h: "反侵略与早期探索", p: "南京条约、马关条约、辛丑条约，以及太平天国、洋务运动、戊戌维新常作时间线辨析。" },
+        { h: "辛亥革命", p: "三民主义、临时约法、结束君主专制和未完成反帝反封建任务是高频组合。" },
+        { h: "五四与建党", p: "新文化运动、五四运动、新民主主义革命开端、马克思主义传播和中共二大纲领要分清。" },
+        { h: "革命道路", p: "八七会议、南昌起义、井冈山道路、遵义会议是时间节点和意义题重点。" },
+        { h: "抗战到新中国", p: "九一八、七七、抗日民族统一战线、持久战、三大战役、新中国成立常串联命题。" }
+      ],
+      marx: [
+        { h: "唯物论", p: "物质、运动、静止、时间空间、意识本质和主观能动性要按固定表述记忆。" },
+        { h: "辩证法", p: "联系发展、矛盾同一性斗争性、普遍性特殊性、主次矛盾、质量互变、否定之否定是核心。" },
+        { h: "认识论", p: "实践决定认识、感性认识和理性认识、真理客观性、绝对性相对性经常出多选判断。" },
+        { h: "历史唯物主义", p: "社会存在与社会意识、生产力生产关系、经济基础上层建筑、人民群众历史作用是高频区。" },
+        { h: "政治经济学", p: "商品二因素、劳动二重性、价值规律、剩余价值、不变资本可变资本、资本主义基本矛盾。" },
+        { h: "科学社会主义", p: "空想社会主义、唯物史观和剩余价值学说、无产阶级使命、共产主义社会特征常考。" }
+      ],
+      ethics: [
+        { h: "人生观", p: "人生目的、人生态度、人生价值，以及个人与社会、人生价值评价尺度是基础题。" },
+        { h: "理想信念", p: "理想信念作用、理想特征、信念特征、个人理想与社会理想关系常出辨析。" },
+        { h: "中国精神", p: "民族精神核心是爱国主义，时代精神核心是改革创新，新时代爱国主义强调三者统一。" },
+        { h: "核心价值观", p: "国家、社会、个人三个层面的12个词必须精确区分，勤学修德明辨笃实也常考。" },
+        { h: "道德修养", p: "社会主义道德核心是为人民服务，原则是集体主义；社会公德、职业道德、家庭美德要分清。" },
+        { h: "法治素养", p: "法律本质、社会主义法律本质、宪法地位、权利义务关系、尊法学法守法用法是高频。" }
+      ]
+    };
+
+    const BASE_BANK = [
+      { id: 1, type: "single", topic: "总论", q: "《习近平新时代中国特色社会主义思想概论》教材的主体结构通常表述为导论、若干章主体内容和结语。其中主体内容为多少章？", o: ["12章", "14章", "17章", "21章"], a: [2], exp: "新华社2023年8月28日报道称，《概论》由导论、17章主体内容和结语构成。" },
+      { id: 2, type: "single", topic: "总论", q: "概括习近平新时代中国特色社会主义思想主要内容的常用表述是？", o: ["五位一体、四个全面、四个自信", "十个明确、十四个坚持、十三个方面成就", "三步走、两个一百年、三大改造", "一化三改、一体两翼、三大法宝"], a: [1], exp: "课程中通常以「十个明确」「十四个坚持」「十三个方面成就」概括主要内容。" },
+      { id: 3, type: "single", topic: "总论", q: "习近平新时代中国特色社会主义思想的世界观和方法论集中体现为？", o: ["六个必须坚持", "四项基本原则", "五大发展理念", "三严三实"], a: [0], exp: "「六个必须坚持」被用于概括这一思想的世界观和方法论。" },
+      { id: 4, type: "single", topic: "总论", q: "中国特色社会主义最本质的特征是？", o: ["共同富裕", "依法治国", "中国共产党领导", "市场在资源配置中起决定性作用"], a: [2], exp: "常考原句：党的领导是中国特色社会主义最本质的特征，也是中国特色社会主义制度的最大优势。" },
+      { id: 5, type: "single", topic: "总论", q: "新时代我国社会主要矛盾是？", o: ["人民日益增长的物质文化需要同落后的社会生产之间的矛盾", "人民日益增长的美好生活需要和不平衡不充分的发展之间的矛盾", "生产力和生产关系之间的矛盾", "经济基础和上层建筑之间的矛盾"], a: [1], exp: "党的十九大报告对我国社会主要矛盾作出新的概括。" },
+      { id: 6, type: "single", topic: "总论", q: "坚持和发展中国特色社会主义的总任务是？", o: ["实现社会主义现代化和中华民族伟大复兴", "全面建成小康社会", "建设社会主义法治国家", "实现区域协调发展"], a: [0], exp: "总任务是实现社会主义现代化和中华民族伟大复兴。" },
+      { id: 7, type: "single", topic: "总论", q: "中国特色社会主义事业总体布局是？", o: ["四个全面", "五位一体", "三位一体", "两个大局"], a: [1], exp: "总体布局是经济建设、政治建设、文化建设、社会建设、生态文明建设「五位一体」。" },
+      { id: 8, type: "single", topic: "总论", q: "中国特色社会主义事业战略布局是？", o: ["五位一体", "四个全面", "三步走战略", "一带一路"], a: [1], exp: "战略布局是全面建设社会主义现代化国家、全面深化改革、全面依法治国、全面从严治党。" },
+      { id: 9, type: "single", topic: "方法论", q: "下列哪一项不属于「六个必须坚持」？", o: ["坚持人民至上", "坚持自信自立", "坚持系统观念", "坚持共同富裕优先"], a: [3], exp: "「六个必须坚持」包括人民至上、自信自立、守正创新、问题导向、系统观念、胸怀天下。" },
+      { id: 10, type: "single", topic: "方法论", q: "「把马克思主义基本原理同中国具体实际相结合、同中华优秀传统文化相结合」通常称为？", o: ["两个维护", "两个结合", "两个确立", "两个大局"], a: [1], exp: "「两个结合」是马克思主义中国化时代化的重要方法论表述。" },
+      { id: 11, type: "single", topic: "方法论", q: "「两个确立」中的一个确立是确立习近平同志党中央的核心、全党的核心地位，另一个是？", o: ["确立中国特色社会主义制度的根本制度地位", "确立习近平新时代中国特色社会主义思想的指导地位", "确立市场经济的基础性地位", "确立生态文明建设的优先地位"], a: [1], exp: "「两个确立」的另一项是确立习近平新时代中国特色社会主义思想的指导地位。" },
+      { id: 12, type: "single", topic: "发展", q: "新发展理念包括创新、协调、绿色、开放和？", o: ["安全", "共享", "改革", "法治"], a: [1], exp: "新发展理念是创新、协调、绿色、开放、共享。" },
+      { id: 13, type: "single", topic: "发展", q: "我国经济社会发展的鲜明主题通常表述为？", o: ["高速增长", "高质量发展", "粗放式扩张", "单一出口导向"], a: [1], exp: "进入新发展阶段，推动高质量发展是鲜明主题。" },
+      { id: 14, type: "single", topic: "发展", q: "构建新发展格局的关键表述是？", o: ["以国际循环为主体", "以国内大循环为主体、国内国际双循环相互促进", "以投资拉动为主体", "以资源出口为主体"], a: [1], exp: "新发展格局强调国内大循环主体地位和双循环相互促进。" },
+      { id: 15, type: "single", topic: "发展", q: "中国式现代化的本质要求之一是？", o: ["照搬西方现代化模式", "实现高速度增长即可", "丰富人民精神世界", "优先发展资本输出"], a: [2], exp: "中国式现代化的本质要求包括丰富人民精神世界、实现全体人民共同富裕等。" },
+      { id: 16, type: "single", topic: "人民", q: "全过程人民民主强调民主不是装饰品，而是要用来解决？", o: ["人民需要解决的问题", "市场自动解决的问题", "少数人内部协商的问题", "国际贸易争端"], a: [0], exp: "全过程人民民主强调最广泛、最真实、最管用，落脚到解决人民需要解决的问题。" },
+      { id: 17, type: "single", topic: "人民", q: "扎实推动共同富裕的对象是？", o: ["少数地区", "部分群体", "全体人民", "特定行业"], a: [2], exp: "共同富裕是全体人民共同富裕，不是少数人的富裕，也不是整齐划一的平均主义。" },
+      { id: 18, type: "single", topic: "法治", q: "全面推进依法治国的总目标是？", o: ["建设中国特色社会主义法治体系、建设社会主义法治国家", "建设服务型政府", "实现司法完全脱离党的领导", "以道德治理代替法律治理"], a: [0], exp: "总目标是建设中国特色社会主义法治体系、建设社会主义法治国家。" },
+      { id: 19, type: "single", topic: "法治", q: "全面依法治国最根本的保证是？", o: ["党的领导", "经济增长", "地方自主", "行业自律"], a: [0], exp: "坚持党对全面依法治国的领导，是社会主义法治的根本要求和最根本保证。" },
+      { id: 20, type: "single", topic: "文化", q: "坚定文化自信，核心是坚持中国特色社会主义文化发展道路。下列哪项不属于文化建设常见考点？", o: ["社会主义核心价值观", "中华优秀传统文化创造性转化、创新性发展", "构建中国话语和中国叙事体系", "完全取消文化交流互鉴"], a: [3], exp: "文化建设强调文明交流互鉴，而不是取消交流互鉴。" },
+      { id: 21, type: "single", topic: "生态", q: "生态文明建设中被反复考查的形象表述是？", o: ["绿水青山就是金山银山", "先污染后治理", "资源无限供给", "发展可以不计生态成本"], a: [0], exp: "「绿水青山就是金山银山」是生态文明思想的重要理念。" },
+      { id: 22, type: "single", topic: "安全", q: "总体国家安全观的宗旨是？", o: ["人民安全", "政治安全", "经济安全", "军事安全"], a: [0], exp: "总体国家安全观以人民安全为宗旨，以政治安全为根本。" },
+      { id: 23, type: "single", topic: "强军", q: "党在新时代的强军目标是建设一支怎样的人民军队？", o: ["数量优先、装备优先、规模优先", "听党指挥、能打胜仗、作风优良", "市场化、职业化、地方化", "轻管理、重扩张、少纪律"], a: [1], exp: "强军目标的固定表述是听党指挥、能打胜仗、作风优良。" },
+      { id: 24, type: "single", topic: "外交", q: "中国特色大国外交的重要目标之一是推动构建？", o: ["排他性军事同盟", "人类命运共同体", "单边霸权体系", "封闭型国际秩序"], a: [1], exp: "推动构建人类命运共同体是中国特色大国外交的重要理念。" },
+      { id: 25, type: "single", topic: "党建", q: "新时代党的建设总要求强调，把党的什么建设摆在首位？", o: ["政治建设", "组织建设", "作风建设", "纪律建设"], a: [0], exp: "新时代党的建设总要求强调以党的政治建设为统领，把政治建设摆在首位。" },
+
+      { id: 26, type: "multi", topic: "方法论", q: "下列属于「六个必须坚持」的有？", o: ["人民至上", "自信自立", "守正创新", "胸怀天下"], a: [0,1,2,3], exp: "四项均属于「六个必须坚持」。另外两项是问题导向、系统观念。" },
+      { id: 27, type: "multi", topic: "方法论", q: "下列属于「两个结合」内容的有？", o: ["同中国具体实际相结合", "同中华优秀传统文化相结合", "同西方政治制度相结合", "同短期经济指标相结合"], a: [0,1], exp: "「两个结合」指同中国具体实际相结合、同中华优秀传统文化相结合。" },
+      { id: 28, type: "multi", topic: "总论", q: "下列属于「五位一体」总体布局的有？", o: ["经济建设", "政治建设", "文化建设", "生态文明建设"], a: [0,1,2,3], exp: "「五位一体」还包括社会建设。四个选项都属于其中。" },
+      { id: 29, type: "multi", topic: "总论", q: "下列属于「四个全面」战略布局的有？", o: ["全面建设社会主义现代化国家", "全面深化改革", "全面依法治国", "全面从严治党"], a: [0,1,2,3], exp: "四个选项构成新时代「四个全面」战略布局。" },
+      { id: 30, type: "multi", topic: "发展", q: "新发展理念包括？", o: ["创新", "协调", "绿色", "共享"], a: [0,1,2,3], exp: "新发展理念为创新、协调、绿色、开放、共享。此题四项均正确。" },
+      { id: 31, type: "multi", topic: "发展", q: "中国式现代化的中国特色包括？", o: ["人口规模巨大的现代化", "全体人民共同富裕的现代化", "物质文明和精神文明相协调的现代化", "人与自然和谐共生的现代化"], a: [0,1,2,3], exp: "中国式现代化还包括走和平发展道路的现代化。" },
+      { id: 32, type: "multi", topic: "发展", q: "推动高质量发展需要正确处理的关系包括？", o: ["质的有效提升和量的合理增长", "发展和安全", "国内循环和国际循环", "政府作用和市场作用"], a: [0,1,2,3], exp: "高质量发展不是单一指标，常与统筹发展安全、双循环、市场和政府关系等一起命题。" },
+      { id: 33, type: "multi", topic: "人民", q: "坚持以人民为中心的发展思想，通常要求做到？", o: ["发展为了人民", "发展依靠人民", "发展成果由人民共享", "把人民作为抽象口号而非实践主体"], a: [0,1,2], exp: "以人民为中心强调为了人民、依靠人民、成果由人民共享。" },
+      { id: 34, type: "multi", topic: "人民", q: "全过程人民民主的特点可概括为？", o: ["最广泛", "最真实", "最管用", "只在选举环节体现"], a: [0,1,2], exp: "全过程人民民主强调全链条、全方位、全覆盖，不限于某一环节。" },
+      { id: 35, type: "multi", topic: "法治", q: "全面依法治国要求共同推进？", o: ["依法治国", "依法执政", "依法行政", "以言代法"], a: [0,1,2], exp: "常考搭配：依法治国、依法执政、依法行政共同推进。" },
+      { id: 36, type: "multi", topic: "法治", q: "法治中国建设强调一体建设？", o: ["法治国家", "法治政府", "法治社会", "法治市场"], a: [0,1,2], exp: "固定表述是法治国家、法治政府、法治社会一体建设。" },
+      { id: 37, type: "multi", topic: "文化", q: "文化建设相关高频表述包括？", o: ["坚持党的文化领导权", "坚定文化自信", "培育和践行社会主义核心价值观", "促进文明交流互鉴"], a: [0,1,2,3], exp: "四项均属于文化建设中的常见关键词。" },
+      { id: 38, type: "multi", topic: "文化", q: "社会主义核心价值观中属于国家层面的价值目标有？", o: ["富强", "民主", "文明", "和谐"], a: [0,1,2,3], exp: "国家层面是富强、民主、文明、和谐；社会层面和个人层面另有对应表述。" },
+      { id: 39, type: "multi", topic: "生态", q: "生态文明建设常见原则包括？", o: ["坚持人与自然和谐共生", "统筹山水林田湖草沙系统治理", "用最严格制度最严密法治保护生态环境", "把生态保护同民生福祉割裂开"], a: [0,1,2], exp: "生态文明强调系统治理和制度法治，也强调良好生态环境是最普惠的民生福祉。" },
+      { id: 40, type: "multi", topic: "安全", q: "总体国家安全观涵盖的安全领域包括？", o: ["政治安全", "经济安全", "文化安全", "社会安全"], a: [0,1,2,3], exp: "总体国家安全观覆盖多领域，四项均属于常见安全领域。" },
+      { id: 41, type: "multi", topic: "强军", q: "人民军队建设必须坚持？", o: ["党对人民军队的绝对领导", "政治建军", "改革强军", "科技强军"], a: [0,1,2,3], exp: "强军思想中常见表述包括坚持党对人民军队绝对领导，政治建军、改革强军、科技强军、人才强军、依法治军等。" },
+      { id: 42, type: "multi", topic: "外交", q: "中国特色大国外交常见关键词包括？", o: ["新型国际关系", "人类命运共同体", "共商共建共享", "和平发展道路"], a: [0,1,2,3], exp: "四项均是外交部分常见考点。" },
+      { id: 43, type: "multi", topic: "党建", q: "新时代党的建设总体布局中包括？", o: ["政治建设", "思想建设", "组织建设", "纪律建设"], a: [0,1,2,3], exp: "党的建设包括政治、思想、组织、作风、纪律建设，并把制度建设贯穿其中。" },
+      { id: 44, type: "multi", topic: "党建", q: "全面从严治党要求？", o: ["落实管党治党政治责任", "以伟大自我革命引领伟大社会革命", "深入推进反腐败斗争", "弱化党的政治建设"], a: [0,1,2], exp: "全面从严治党强调政治责任、自我革命和反腐败斗争，不是弱化政治建设。" },
+      { id: 45, type: "multi", topic: "总论", q: "下列属于增强政治认同常考表述的有？", o: ["四个意识", "四个自信", "两个维护", "两个确立"], a: [0,1,2,3], exp: "这些概念常组合出现在课程总论和党的领导相关考点中。" },
+
+      { id: 46, type: "judge", topic: "总论", q: "「十个明确」侧重回答新时代坚持和发展什么样的中国特色社会主义、怎样坚持和发展中国特色社会主义等重大问题。", o: ["正确", "错误"], a: [0], exp: "该判断符合课程常见表述。" },
+      { id: 47, type: "judge", topic: "方法论", q: "「六个必须坚持」只是一组学习口号，不属于世界观和方法论层面的概括。", o: ["正确", "错误"], a: [1], exp: "错误。「六个必须坚持」正是世界观和方法论的重要概括。" },
+      { id: 48, type: "judge", topic: "总论", q: "「五位一体」总体布局包括经济建设、政治建设、文化建设、社会建设、生态文明建设。", o: ["正确", "错误"], a: [0], exp: "正确，这是固定搭配。" },
+      { id: 49, type: "judge", topic: "总论", q: "「四个全面」战略布局中的全面依法治国可以由全面从严治党完全替代。", o: ["正确", "错误"], a: [1], exp: "错误。二者各有内涵，不能相互替代。" },
+      { id: 50, type: "judge", topic: "发展", q: "高质量发展意味着只追求增长速度，不考虑结构、效益和安全。", o: ["正确", "错误"], a: [1], exp: "错误。高质量发展强调质量、效益、结构、动力和安全等综合要求。" },
+      { id: 51, type: "judge", topic: "发展", q: "新发展格局不是封闭的国内循环，而是开放的国内国际双循环。", o: ["正确", "错误"], a: [0], exp: "正确。新发展格局强调国内国际双循环相互促进。" },
+      { id: 52, type: "judge", topic: "人民", q: "共同富裕是全体人民共同富裕，不是少数人的富裕，也不是平均主义。", o: ["正确", "错误"], a: [0], exp: "正确。此处常考对「共同富裕」的辨析。" },
+      { id: 53, type: "judge", topic: "人民", q: "全过程人民民主只在投票选举当天体现，其他环节不属于民主过程。", o: ["正确", "错误"], a: [1], exp: "错误。全过程人民民主强调全链条、全方位、全覆盖。" },
+      { id: 54, type: "judge", topic: "法治", q: "全面依法治国的总目标是建设中国特色社会主义法治体系、建设社会主义法治国家。", o: ["正确", "错误"], a: [0], exp: "正确，这是高频固定表述。" },
+      { id: 55, type: "judge", topic: "文化", q: "坚定文化自信并不意味着拒绝文明交流互鉴。", o: ["正确", "错误"], a: [0], exp: "正确。文化自信与文明交流互鉴并不矛盾。" },
+      { id: 56, type: "judge", topic: "生态", q: "生态文明建设强调统筹山水林田湖草沙系统治理。", o: ["正确", "错误"], a: [0], exp: "正确，这是生态文明部分常见表述。" },
+      { id: 57, type: "judge", topic: "安全", q: "总体国家安全观以人民安全为宗旨，以政治安全为根本。", o: ["正确", "错误"], a: [0], exp: "正确。此题考查总体国家安全观的基本定位。" },
+      { id: 58, type: "judge", topic: "强军", q: "党对人民军队的绝对领导是人民军队的建军之本、强军之魂。", o: ["正确", "错误"], a: [0], exp: "正确。强军部分高频考点。" },
+      { id: 59, type: "judge", topic: "外交", q: "推动构建人类命运共同体是中国特色大国外交的重要理念。", o: ["正确", "错误"], a: [0], exp: "正确。外交部分常与新型国际关系、和平发展道路一起考查。" },
+      { id: 60, type: "judge", topic: "党建", q: "全面从严治党只需要抓思想教育，不需要制度建设和纪律建设。", o: ["正确", "错误"], a: [1], exp: "错误。全面从严治党强调多方面建设，并把制度建设贯穿其中。" }
+    ];
+
+    const HIGH_FREQ_FACTS = [
+      { topic: "总论", key: "新时代的历史方位", desc: "中国特色社会主义进入新时代，是我国发展新的历史方位。", tags: ["新时代", "历史方位", "中国特色社会主义"], wrong: ["社会主义初级阶段已经结束", "主要矛盾没有变化", "只指时间概念"] },
+      { topic: "总论", key: "社会主要矛盾", desc: "新时代我国社会主要矛盾是人民日益增长的美好生活需要和不平衡不充分的发展之间的矛盾。", tags: ["美好生活需要", "不平衡不充分", "新时代"], wrong: ["物质文化需要同落后生产", "阶级斗争为纲", "外部环境矛盾"] },
+      { topic: "总论", key: "总任务", desc: "坚持和发展中国特色社会主义的总任务是实现社会主义现代化和中华民族伟大复兴。", tags: ["社会主义现代化", "民族复兴", "总任务"], wrong: ["单纯追求 GDP", "完成所有制改造", "全面建成小康社会即止步"] },
+      { topic: "总论", key: "最本质特征", desc: "中国共产党领导是中国特色社会主义最本质的特征。", tags: ["党的领导", "最本质特征", "制度优势"], wrong: ["共同富裕是最本质特征", "市场经济是最本质特征", "依法治国是唯一特征"] },
+      { topic: "总论", key: "最大制度优势", desc: "中国共产党领导是中国特色社会主义制度的最大优势。", tags: ["党的领导", "最大优势", "中国特色社会主义制度"], wrong: ["资源禀赋是最大优势", "人口规模是最大优势", "区域差异是最大优势"] },
+      { topic: "总论", key: "五位一体", desc: "中国特色社会主义事业总体布局是经济建设、政治建设、文化建设、社会建设、生态文明建设五位一体。", tags: ["经济建设", "政治建设", "生态文明建设"], wrong: ["军事建设是总体布局之一", "外交建设替代社会建设", "只包括经济政治文化"] },
+      { topic: "总论", key: "四个全面", desc: "中国特色社会主义事业战略布局是全面建设社会主义现代化国家、全面深化改革、全面依法治国、全面从严治党。", tags: ["现代化国家", "深化改革", "依法治国"], wrong: ["全面建成小康社会永远居首", "全面扩大出口", "全面平均分配"] },
+      { topic: "总论", key: "两个确立", desc: "两个确立指确立习近平同志党中央的核心、全党的核心地位，确立习近平新时代中国特色社会主义思想的指导地位。", tags: ["核心地位", "指导地位", "政治认同"], wrong: ["确立市场主体地位", "确立地方中心地位", "确立西方制度模板"] },
+      { topic: "总论", key: "两个维护", desc: "两个维护指坚决维护习近平总书记党中央的核心、全党的核心地位，坚决维护党中央权威和集中统一领导。", tags: ["核心地位", "党中央权威", "集中统一领导"], wrong: ["维护地方自主优先", "维护行业利益优先", "维护部门分散决策"] },
+      { topic: "总论", key: "四个意识", desc: "四个意识是政治意识、大局意识、核心意识、看齐意识。", tags: ["政治意识", "大局意识", "看齐意识"], wrong: ["竞争意识", "利润意识", "流量意识"] },
+      { topic: "总论", key: "四个自信", desc: "四个自信是道路自信、理论自信、制度自信、文化自信。", tags: ["道路自信", "理论自信", "文化自信"], wrong: ["技术自信", "资本自信", "地域自信"] },
+      { topic: "总论", key: "十个明确", desc: "十个明确是习近平新时代中国特色社会主义思想的核心内容之一，集中体现理论层面的原创性贡献。", tags: ["核心内容", "理论概括", "原创性贡献"], wrong: ["只属于工作方法", "只涉及外交领域", "等同于五位一体"] },
+      { topic: "总论", key: "十四个坚持", desc: "十四个坚持是新时代坚持和发展中国特色社会主义的基本方略。", tags: ["基本方略", "坚持和发展", "新时代"], wrong: ["只是一组口号", "只适用于经济领域", "替代党的基本路线"] },
+      { topic: "总论", key: "十三个方面成就", desc: "十三个方面成就集中反映新时代党和国家事业取得的历史性成就、发生的历史性变革。", tags: ["历史性成就", "历史性变革", "新时代实践"], wrong: ["只反映地方经验", "只属于文化领域", "与新时代无关"] },
+      { topic: "总论", key: "理论品格", desc: "习近平新时代中国特色社会主义思想是当代中国马克思主义、二十一世纪马克思主义。", tags: ["当代中国马克思主义", "二十一世纪马克思主义", "马克思主义中国化时代化"], wrong: ["脱离马克思主义", "只是一项行政政策", "只属于地方治理经验"] },
+
+      { topic: "方法论", key: "六个必须坚持", desc: "六个必须坚持集中体现习近平新时代中国特色社会主义思想的世界观和方法论。", tags: ["世界观", "方法论", "立场观点方法"], wrong: ["只指经济指标", "只指组织纪律", "只指外交策略"] },
+      { topic: "方法论", key: "坚持人民至上", desc: "坚持人民至上体现根本价值立场，强调人民是历史的创造者。", tags: ["人民立场", "历史创造者", "价值立场"], wrong: ["资本至上", "少数人至上", "流量至上"] },
+      { topic: "方法论", key: "坚持自信自立", desc: "坚持自信自立强调中国的问题必须从中国基本国情出发，由中国人自己来解答。", tags: ["中国国情", "自主探索", "自信自立"], wrong: ["照搬外部模式", "依赖单一路径", "放弃独立思考"] },
+      { topic: "方法论", key: "坚持守正创新", desc: "坚持守正创新强调坚持马克思主义基本原理和党的全面领导，同时不断推进理论和实践创新。", tags: ["守正", "创新", "党的领导"], wrong: ["只守不创", "只破不立", "否定基本原则"] },
+      { topic: "方法论", key: "坚持问题导向", desc: "坚持问题导向要求聚焦实践遇到的新问题、改革发展稳定存在的深层次问题。", tags: ["问题意识", "实践问题", "深层次矛盾"], wrong: ["回避矛盾", "只看成绩", "不问现实问题"] },
+      { topic: "方法论", key: "坚持系统观念", desc: "坚持系统观念要求用普遍联系、全面系统、发展变化的观点观察事物。", tags: ["普遍联系", "全面系统", "发展变化"], wrong: ["孤立片面", "只看局部", "静止不变"] },
+      { topic: "方法论", key: "坚持胸怀天下", desc: "坚持胸怀天下强调以世界眼光关注人类前途命运，推动构建人类命运共同体。", tags: ["世界眼光", "人类命运共同体", "天下情怀"], wrong: ["封闭排他", "零和博弈", "只顾自身"] },
+      { topic: "方法论", key: "两个结合", desc: "两个结合指把马克思主义基本原理同中国具体实际相结合、同中华优秀传统文化相结合。", tags: ["中国具体实际", "中华优秀传统文化", "马克思主义基本原理"], wrong: ["同资本逻辑结合", "同封建糟粕结合", "同短期流量结合"] },
+      { topic: "方法论", key: "马克思主义中国化时代化", desc: "马克思主义中国化时代化要求立足中国实际、回应时代课题、推进理论创新。", tags: ["中国实际", "时代课题", "理论创新"], wrong: ["脱离实践", "照搬文本", "拒绝发展"] },
+      { topic: "方法论", key: "实践基础上的理论创新", desc: "实践没有止境，理论创新也没有止境。", tags: ["实践", "理论创新", "与时俱进"], wrong: ["理论一成不变", "实践服从空想", "创新脱离人民"] },
+
+      { topic: "发展", key: "新发展阶段", desc: "全面建设社会主义现代化国家、向第二个百年奋斗目标进军，标志我国进入新发展阶段。", tags: ["现代化国家", "第二个百年", "新发展阶段"], wrong: ["脱离社会主义初级阶段", "回到高速粗放阶段", "只指地区发展阶段"] },
+      { topic: "发展", key: "新发展理念", desc: "新发展理念是创新、协调、绿色、开放、共享。", tags: ["创新", "协调", "共享"], wrong: ["封闭", "粗放", "短期"] },
+      { topic: "发展", key: "创新发展", desc: "创新是引领发展的第一动力。", tags: ["第一动力", "科技创新", "发展动能"], wrong: ["资源消耗为第一动力", "低端扩张为第一动力", "重复建设为第一动力"] },
+      { topic: "发展", key: "协调发展", desc: "协调发展注重解决发展不平衡问题。", tags: ["不平衡", "整体性", "协调性"], wrong: ["只重速度", "忽视区域差距", "单点冒进"] },
+      { topic: "发展", key: "绿色发展", desc: "绿色发展注重解决人与自然和谐共生问题。", tags: ["人与自然", "和谐共生", "绿色低碳"], wrong: ["先污染后治理", "生态让位一切", "资源无限消耗"] },
+      { topic: "发展", key: "开放发展", desc: "开放发展注重解决发展内外联动问题。", tags: ["内外联动", "互利共赢", "更高水平开放"], wrong: ["封闭循环", "排斥合作", "单边封锁"] },
+      { topic: "发展", key: "共享发展", desc: "共享发展注重解决社会公平正义问题。", tags: ["公平正义", "共同享有", "民生福祉"], wrong: ["少数人独享", "平均主义替代发展", "只看资本收益"] },
+      { topic: "发展", key: "高质量发展", desc: "高质量发展是全面建设社会主义现代化国家的首要任务。", tags: ["首要任务", "质量效益", "现代化建设"], wrong: ["高速度就是全部", "粗放扩张", "只看总量"] },
+      { topic: "发展", key: "新发展格局", desc: "新发展格局以国内大循环为主体、国内国际双循环相互促进。", tags: ["国内大循环", "双循环", "开放循环"], wrong: ["封闭国内循环", "国际循环唯一主体", "取消对外开放"] },
+      { topic: "发展", key: "供给侧结构性改革", desc: "供给侧结构性改革是推动经济高质量发展的主线之一。", tags: ["供给体系", "结构优化", "高质量发展"], wrong: ["单纯刺激需求", "只靠房地产扩张", "低端重复供给"] },
+      { topic: "发展", key: "实体经济", desc: "建设现代化产业体系要坚持把发展经济的着力点放在实体经济上。", tags: ["实体经济", "现代化产业体系", "着力点"], wrong: ["脱实向虚", "只发展虚拟炒作", "弱化制造基础"] },
+      { topic: "发展", key: "科技自立自强", desc: "科技自立自强是国家强盛之基、安全之要。", tags: ["科技创新", "自立自强", "国家安全"], wrong: ["完全依赖进口", "放弃关键核心技术", "忽视基础研究"] },
+      { topic: "发展", key: "教育科技人才", desc: "教育、科技、人才是全面建设社会主义现代化国家的基础性、战略性支撑。", tags: ["教育", "科技", "人才"], wrong: ["流量", "投机", "短期炒作"] },
+      { topic: "发展", key: "乡村振兴", desc: "全面推进乡村振兴是新时代做好三农工作的总抓手。", tags: ["三农工作", "乡村振兴", "农业农村现代化"], wrong: ["削弱农业基础", "只发展城市", "放弃农村公共服务"] },
+      { topic: "发展", key: "区域协调发展", desc: "区域协调发展强调促进各地区比较优势充分发挥、协调联动。", tags: ["比较优势", "协调联动", "区域战略"], wrong: ["地区割裂", "一刀切同质化", "只顾单一区域"] },
+
+      { topic: "现代化", key: "中国式现代化", desc: "中国式现代化是中国共产党领导的社会主义现代化。", tags: ["党的领导", "社会主义现代化", "中国特色"], wrong: ["资本主义现代化", "照搬西方模式", "去政治化现代化"] },
+      { topic: "现代化", key: "人口规模巨大", desc: "人口规模巨大的现代化是中国式现代化的重要中国特色。", tags: ["人口规模巨大", "中国特色", "现代化"], wrong: ["只适合少数人", "排除人口因素", "小国模板照搬"] },
+      { topic: "现代化", key: "共同富裕现代化", desc: "全体人民共同富裕的现代化是中国式现代化的重要中国特色。", tags: ["全体人民", "共同富裕", "现代化"], wrong: ["少数人富裕", "两极分化", "平均主义停滞"] },
+      { topic: "现代化", key: "两个文明协调", desc: "物质文明和精神文明相协调的现代化是中国式现代化的重要中国特色。", tags: ["物质文明", "精神文明", "协调"], wrong: ["只重物质", "只重精神口号", "割裂两个文明"] },
+      { topic: "现代化", key: "人与自然和谐共生现代化", desc: "人与自然和谐共生的现代化是中国式现代化的重要中国特色。", tags: ["人与自然", "和谐共生", "绿色发展"], wrong: ["高污染现代化", "自然服从一切开发", "只算经济账"] },
+      { topic: "现代化", key: "和平发展道路", desc: "走和平发展道路的现代化是中国式现代化的重要中国特色。", tags: ["和平发展", "互利共赢", "不称霸"], wrong: ["殖民掠夺", "霸权扩张", "零和对抗"] },
+      { topic: "现代化", key: "本质要求", desc: "中国式现代化的本质要求包括坚持中国共产党领导、坚持中国特色社会主义、实现高质量发展等。", tags: ["党的领导", "中国特色社会主义", "高质量发展"], wrong: ["照搬西方制度", "放弃共同富裕", "牺牲生态环境"] },
+      { topic: "现代化", key: "两步走战略安排", desc: "全面建成社会主义现代化强国，总的战略安排是分两步走。", tags: ["两步走", "现代化强国", "战略安排"], wrong: ["一步到位", "只到2035年停止", "没有长期安排"] },
+
+      { topic: "人民", key: "以人民为中心", desc: "以人民为中心的发展思想强调发展为了人民、发展依靠人民、发展成果由人民共享。", tags: ["为了人民", "依靠人民", "成果共享"], wrong: ["为了资本", "依靠少数人", "成果独享"] },
+      { topic: "人民", key: "人民立场", desc: "人民立场是中国共产党的根本政治立场。", tags: ["人民立场", "根本政治立场", "党的性质宗旨"], wrong: ["资本立场", "少数利益立场", "部门立场"] },
+      { topic: "人民", key: "共同富裕", desc: "共同富裕是全体人民共同富裕，是社会主义的本质要求。", tags: ["全体人民", "社会主义本质要求", "共同富裕"], wrong: ["少数人富裕", "同步同等富裕", "平均主义"] },
+      { topic: "人民", key: "全过程人民民主", desc: "全过程人民民主是最广泛、最真实、最管用的社会主义民主。", tags: ["最广泛", "最真实", "最管用"], wrong: ["只在投票日体现", "形式装饰", "少数人内部民主"] },
+      { topic: "人民", key: "民主不是装饰品", desc: "民主不是装饰品，不是用来做摆设的，而是要用来解决人民需要解决的问题。", tags: ["解决问题", "人民需要", "民主实效"], wrong: ["只做摆设", "只看仪式", "脱离人民问题"] },
+      { topic: "人民", key: "民生福祉", desc: "增进民生福祉是发展的根本目的。", tags: ["民生福祉", "根本目的", "发展成果"], wrong: ["发展目的只为资本积累", "民生可有可无", "只看指标不看人民感受"] },
+      { topic: "人民", key: "人民当家作主", desc: "人民当家作主是社会主义民主政治的本质和核心。", tags: ["人民当家作主", "社会主义民主政治", "本质和核心"], wrong: ["少数人治理", "资本主导政治", "形式民主"] },
+      { topic: "人民", key: "基层治理", desc: "基层治理是国家治理的基石，关系人民群众切身利益。", tags: ["基层治理", "国家治理基石", "群众利益"], wrong: ["基层不重要", "只靠上级命令", "群众无需参与"] },
+
+      { topic: "改革", key: "全面深化改革总目标", desc: "全面深化改革总目标是完善和发展中国特色社会主义制度、推进国家治理体系和治理能力现代化。", tags: ["制度完善发展", "治理体系", "治理能力现代化"], wrong: ["改变社会主义方向", "只改经济不改治理", "削弱制度建设"] },
+      { topic: "改革", key: "改革开放", desc: "改革开放是决定当代中国命运的关键一招。", tags: ["关键一招", "当代中国命运", "改革开放"], wrong: ["临时权宜之计", "只属于过去", "与现代化无关"] },
+      { topic: "改革", key: "改革方向", desc: "全面深化改革必须坚持和完善中国特色社会主义制度。", tags: ["中国特色社会主义制度", "改革方向", "制度优势"], wrong: ["改旗易帜", "照搬外部制度", "否定制度根基"] },
+      { topic: "改革", key: "国家治理现代化", desc: "国家治理体系和治理能力现代化是全面深化改革的重要目标。", tags: ["治理体系", "治理能力", "现代化"], wrong: ["治理碎片化", "治理随意化", "削弱制度执行"] },
+
+      { topic: "法治", key: "全面依法治国总目标", desc: "全面依法治国总目标是建设中国特色社会主义法治体系、建设社会主义法治国家。", tags: ["法治体系", "法治国家", "中国特色社会主义"], wrong: ["以人治代替法治", "法律可有可无", "照搬外国法系"] },
+      { topic: "法治", key: "党的领导与法治", desc: "党的领导是全面依法治国最根本的保证。", tags: ["党的领导", "根本保证", "依法治国"], wrong: ["党的领导与法治对立", "司法完全脱离政治方向", "弱化党的领导"] },
+      { topic: "法治", key: "法治中国一体建设", desc: "法治中国建设要求法治国家、法治政府、法治社会一体建设。", tags: ["法治国家", "法治政府", "法治社会"], wrong: ["只建法治政府", "只靠道德治理", "只管司法机关"] },
+      { topic: "法治", key: "科学立法严格执法公正司法全民守法", desc: "全面依法治国要推进科学立法、严格执法、公正司法、全民守法。", tags: ["科学立法", "严格执法", "公正司法"], wrong: ["选择执法", "以言代法", "少数人守法"] },
+      { topic: "法治", key: "宪法实施", desc: "全面依法治国必须维护宪法权威，保证宪法实施。", tags: ["宪法权威", "宪法实施", "法治根基"], wrong: ["宪法可虚置", "部门规章高于宪法", "权力不受规范"] },
+      { topic: "法治", key: "良法善治", desc: "法治建设追求良法善治，把制度优势转化为治理效能。", tags: ["良法", "善治", "治理效能"], wrong: ["有法不依", "粗暴治理", "制度空转"] },
+
+      { topic: "文化", key: "文化自信", desc: "文化自信是更基础、更广泛、更深厚的自信。", tags: ["更基础", "更广泛", "更深厚"], wrong: ["拒绝交流", "盲目自大", "否定传统"] },
+      { topic: "文化", key: "社会主义核心价值观国家层面", desc: "社会主义核心价值观国家层面是富强、民主、文明、和谐。", tags: ["富强", "民主", "和谐"], wrong: ["自由平等", "爱国敬业", "诚信友善"] },
+      { topic: "文化", key: "社会主义核心价值观社会层面", desc: "社会主义核心价值观社会层面是自由、平等、公正、法治。", tags: ["自由", "平等", "法治"], wrong: ["富强民主", "爱国敬业", "文明和谐"] },
+      { topic: "文化", key: "社会主义核心价值观个人层面", desc: "社会主义核心价值观个人层面是爱国、敬业、诚信、友善。", tags: ["爱国", "敬业", "诚信"], wrong: ["富强民主", "自由平等", "文明法治"] },
+      { topic: "文化", key: "中华优秀传统文化", desc: "中华优秀传统文化要创造性转化、创新性发展。", tags: ["创造性转化", "创新性发展", "优秀传统文化"], wrong: ["全盘复古", "全盘否定", "静态封存"] },
+      { topic: "文化", key: "意识形态工作", desc: "意识形态工作是为国家立心、为民族立魂的工作。", tags: ["国家立心", "民族立魂", "意识形态"], wrong: ["可有可无", "只属文娱行业", "与安全无关"] },
+      { topic: "文化", key: "新闻舆论工作", desc: "新闻舆论工作要坚持正确政治方向、舆论导向、价值取向。", tags: ["政治方向", "舆论导向", "价值取向"], wrong: ["流量至上", "猎奇至上", "脱离人民"] },
+      { topic: "文化", key: "文明交流互鉴", desc: "坚定文化自信并不排斥文明交流互鉴。", tags: ["文化自信", "交流互鉴", "开放包容"], wrong: ["封闭排外", "全盘照搬", "取消交流"] },
+
+      { topic: "生态", key: "绿水青山就是金山银山", desc: "绿水青山就是金山银山体现保护生态环境就是保护生产力、改善生态环境就是发展生产力。", tags: ["绿水青山", "金山银山", "生产力"], wrong: ["先污染后治理", "生态无价值", "只要金山银山"] },
+      { topic: "生态", key: "人与自然和谐共生", desc: "人与自然和谐共生是中国式现代化的重要特征，也是生态文明建设的核心要求。", tags: ["人与自然", "和谐共生", "生态文明"], wrong: ["征服自然", "无限开发", "割裂生态与发展"] },
+      { topic: "生态", key: "系统治理", desc: "生态保护要统筹山水林田湖草沙系统治理。", tags: ["山水林田湖草沙", "系统治理", "统筹"], wrong: ["头痛医头", "单一治理", "局部割裂"] },
+      { topic: "生态", key: "最严格制度最严密法治", desc: "保护生态环境必须依靠最严格制度、最严密法治。", tags: ["最严格制度", "最严密法治", "生态保护"], wrong: ["只靠自觉", "无约束开发", "制度可松可紧"] },
+      { topic: "生态", key: "双碳目标", desc: "碳达峰碳中和是推动高质量发展的内在要求。", tags: ["碳达峰", "碳中和", "高质量发展"], wrong: ["与发展无关", "只靠口号", "放弃能源安全"] },
+      { topic: "生态", key: "生态民生", desc: "良好生态环境是最普惠的民生福祉。", tags: ["良好生态", "普惠民生", "民生福祉"], wrong: ["生态与民生无关", "污染也是福利", "只看短期收益"] },
+
+      { topic: "安全", key: "总体国家安全观", desc: "总体国家安全观以人民安全为宗旨、以政治安全为根本、以经济安全为基础。", tags: ["人民安全", "政治安全", "经济安全"], wrong: ["以资本安全为宗旨", "以娱乐安全为根本", "只看军事安全"] },
+      { topic: "安全", key: "政治安全", desc: "政治安全是国家安全的根本。", tags: ["政治安全", "根本", "国家安全"], wrong: ["流量安全是根本", "局部利益是根本", "消费安全是根本"] },
+      { topic: "安全", key: "人民安全", desc: "人民安全是国家安全的宗旨。", tags: ["人民安全", "宗旨", "国家安全"], wrong: ["资本安全是宗旨", "部门安全是宗旨", "形式安全是宗旨"] },
+      { topic: "安全", key: "发展和安全", desc: "统筹发展和安全是推进现代化建设必须把握的重要原则。", tags: ["统筹", "发展", "安全"], wrong: ["只要发展不要安全", "只要安全不要发展", "二者完全割裂"] },
+      { topic: "安全", key: "粮食安全", desc: "粮食安全是国家安全的重要基础。", tags: ["粮食安全", "重要基础", "国家安全"], wrong: ["粮食完全依赖进口", "农业基础可忽视", "粮食只属市场问题"] },
+      { topic: "安全", key: "能源资源安全", desc: "能源资源安全关系经济社会发展全局和国家安全。", tags: ["能源安全", "资源安全", "发展全局"], wrong: ["能源无关安全", "资源无限供给", "只看短期价格"] },
+
+      { topic: "强军", key: "党对人民军队绝对领导", desc: "党对人民军队的绝对领导是人民军队的建军之本、强军之魂。", tags: ["绝对领导", "建军之本", "强军之魂"], wrong: ["军队国家化", "脱离党的领导", "分散领导"] },
+      { topic: "强军", key: "强军目标", desc: "党在新时代的强军目标是建设听党指挥、能打胜仗、作风优良的人民军队。", tags: ["听党指挥", "能打胜仗", "作风优良"], wrong: ["数量至上", "装备至上", "脱离人民"] },
+      { topic: "强军", key: "政治建军", desc: "政治建军是人民军队的立军之本。", tags: ["政治建军", "立军之本", "人民军队"], wrong: ["资本建军", "技术唯一", "松散管理"] },
+      { topic: "强军", key: "改革强军", desc: "改革强军是推进国防和军队现代化的重要动力。", tags: ["改革强军", "军队现代化", "重要动力"], wrong: ["拒绝改革", "维持旧体制", "只扩规模"] },
+      { topic: "强军", key: "科技强军", desc: "科技强军要求提高国防和军队建设科技含量。", tags: ["科技强军", "科技含量", "现代战争"], wrong: ["忽视科技", "只靠人海", "排斥创新"] },
+      { topic: "强军", key: "依法治军", desc: "依法治军是强军兴军的基本方式。", tags: ["依法治军", "基本方式", "强军兴军"], wrong: ["随意治军", "人情治军", "纪律松散"] },
+
+      { topic: "外交", key: "人类命运共同体", desc: "推动构建人类命运共同体是中国特色大国外交的重要理念。", tags: ["人类命运共同体", "大国外交", "共同发展"], wrong: ["零和博弈", "霸权扩张", "封闭排他"] },
+      { topic: "外交", key: "新型国际关系", desc: "新型国际关系强调相互尊重、公平正义、合作共赢。", tags: ["相互尊重", "公平正义", "合作共赢"], wrong: ["强权政治", "单边主义", "阵营对抗"] },
+      { topic: "外交", key: "和平发展道路", desc: "中国坚持走和平发展道路，反对霸权主义和强权政治。", tags: ["和平发展", "反对霸权", "强权政治"], wrong: ["对外扩张", "殖民掠夺", "单边霸凌"] },
+      { topic: "外交", key: "全球治理观", desc: "全球治理观强调共商共建共享。", tags: ["共商", "共建", "共享"], wrong: ["一家独大", "强者通吃", "排他治理"] },
+      { topic: "外交", key: "一带一路", desc: "共建一带一路坚持共商共建共享原则。", tags: ["一带一路", "共商共建共享", "互联互通"], wrong: ["封闭排他", "零和竞争", "单边命令"] },
+      { topic: "外交", key: "全人类共同价值", desc: "和平、发展、公平、正义、民主、自由是全人类共同价值。", tags: ["和平", "发展", "公平正义"], wrong: ["霸权", "殖民", "零和"] },
+
+      { topic: "党建", key: "全面从严治党", desc: "全面从严治党是新时代党的自我革命的伟大实践。", tags: ["全面从严治党", "自我革命", "党的建设"], wrong: ["一阵风", "只抓经济", "放松管党治党"] },
+      { topic: "党建", key: "党的政治建设", desc: "新时代党的建设要把党的政治建设摆在首位。", tags: ["政治建设", "首位", "党的建设"], wrong: ["作风建设取代政治建设", "忽视政治方向", "只抓业务"] },
+      { topic: "党建", key: "自我革命", desc: "勇于自我革命是中国共产党区别于其他政党的显著标志。", tags: ["自我革命", "显著标志", "中国共产党"], wrong: ["回避问题", "讳疾忌医", "只讲外部监督"] },
+      { topic: "党建", key: "反腐败斗争", desc: "反腐败是最彻底的自我革命。", tags: ["反腐败", "自我革命", "彻底性"], wrong: ["腐败可容忍", "只抓小不抓大", "与党建无关"] },
+      { topic: "党建", key: "思想建设", desc: "思想建设是党的基础性建设。", tags: ["思想建设", "基础性建设", "理论武装"], wrong: ["思想建设可有可无", "只靠行政命令", "理论学习无关党建"] },
+      { topic: "党建", key: "组织路线", desc: "新时代党的组织路线服务保证党的政治路线。", tags: ["组织路线", "政治路线", "组织保证"], wrong: ["组织路线脱离政治路线", "组织建设不重要", "只看个人好恶"] },
+      { topic: "党建", key: "纪律建设", desc: "纪律严明是党的光荣传统和独特优势。", tags: ["纪律严明", "光荣传统", "独特优势"], wrong: ["纪律松弛", "各行其是", "不受约束"] },
+      { topic: "党建", key: "制度治党依规治党", desc: "全面从严治党要坚持制度治党、依规治党。", tags: ["制度治党", "依规治党", "全面从严"], wrong: ["人情治党", "随意治党", "无规可依"] }
+    ];
+
+    function rotateOptions(items, seed) {
+      const list = items.map((item, original) => typeof item === "object" ? { ...item, original } : { text: item, original });
+      const shift = seed % list.length;
+      return [...list.slice(shift), ...list.slice(0, shift)];
+    }
+
+    const MAO_FACTS = [
+      { topic: "导论", key: "马克思主义中国化时代化", desc: "马克思主义中国化时代化就是把马克思主义基本原理同中国具体实际相结合、同中华优秀传统文化相结合。", tags: ["中国具体实际", "中华优秀传统文化", "基本原理"], wrong: ["照搬经典作家个别结论", "脱离中国实践", "否定中华优秀传统文化"] },
+      { topic: "导论", key: "两次历史性飞跃", desc: "马克思主义中国化时代化产生了毛泽东思想、中国特色社会主义理论体系等重大理论成果。", tags: ["毛泽东思想", "中国特色社会主义理论体系", "理论成果"], wrong: ["只产生一个理论成果", "与中国革命实践无关", "只属于经济政策"] },
+      { topic: "导论", key: "毛泽东思想活的灵魂", desc: "毛泽东思想活的灵魂是实事求是、群众路线、独立自主。", tags: ["实事求是", "群众路线", "独立自主"], wrong: ["主观主义", "官僚主义", "照搬照抄"] },
+      { topic: "导论", key: "中国特色社会主义理论体系", desc: "中国特色社会主义理论体系包括邓小平理论、三个代表重要思想、科学发展观、习近平新时代中国特色社会主义思想等。", tags: ["邓小平理论", "三个代表重要思想", "科学发展观"], wrong: ["只包括毛泽东思想", "只包括经济体制改革理论", "不包括新时代党的创新理论"] },
+      { topic: "导论", key: "理论联系实际", desc: "学习党的创新理论要坚持理论联系实际，把握基本立场、观点和方法。", tags: ["理论联系实际", "立场观点方法", "实践运用"], wrong: ["背概念即可", "脱离社会实践", "只看个别词句"] },
+
+      { topic: "新民主主义革命", key: "近代中国基本国情", desc: "近代中国是半殖民地半封建社会，这是认识中国革命问题的基本依据。", tags: ["半殖民地", "半封建", "基本国情"], wrong: ["资本主义强国", "社会主义社会", "封建社会原样延续"] },
+      { topic: "新民主主义革命", key: "近代中国主要矛盾", desc: "近代中国社会的主要矛盾包括帝国主义和中华民族的矛盾、封建主义和人民大众的矛盾。", tags: ["帝国主义", "中华民族", "封建主义"], wrong: ["资产阶级和无产阶级是唯一矛盾", "人与自然矛盾是主要矛盾", "地区矛盾是唯一矛盾"] },
+      { topic: "新民主主义革命", key: "革命首要对象", desc: "帝国主义是中国革命的首要对象。", tags: ["帝国主义", "首要对象", "民族独立"], wrong: ["民族资产阶级是首要对象", "工人阶级是首要对象", "农民阶级是首要对象"] },
+      { topic: "新民主主义革命", key: "新民主主义革命性质", desc: "新民主主义革命仍然属于资产阶级民主主义革命的范畴，但由无产阶级领导。", tags: ["资产阶级民主革命", "无产阶级领导", "新式革命"], wrong: ["社会主义革命", "旧式资产阶级革命", "农民自发革命"] },
+      { topic: "新民主主义革命", key: "新民主主义革命领导力量", desc: "无产阶级及其政党领导是新民主主义革命区别于旧民主主义革命的根本标志。", tags: ["无产阶级", "共产党领导", "根本标志"], wrong: ["资产阶级领导", "地主阶级领导", "军阀领导"] },
+      { topic: "新民主主义革命", key: "新民主主义革命动力", desc: "新民主主义革命的动力包括无产阶级、农民阶级、城市小资产阶级和民族资产阶级。", tags: ["无产阶级", "农民阶级", "民族资产阶级"], wrong: ["官僚资产阶级", "买办阶级", "帝国主义势力"] },
+      { topic: "新民主主义革命", key: "革命主力军", desc: "农民是中国革命的主力军。", tags: ["农民", "主力军", "农村革命"], wrong: ["官僚资产阶级", "帝国主义", "地主阶级"] },
+      { topic: "新民主主义革命", key: "革命基本问题", desc: "农民问题是中国革命的基本问题。", tags: ["农民问题", "土地问题", "基本问题"], wrong: ["商业利润问题", "殖民者利益问题", "官僚资本利益问题"] },
+      { topic: "新民主主义革命", key: "革命道路", desc: "中国革命走农村包围城市、武装夺取政权的道路。", tags: ["农村包围城市", "武装夺取政权", "革命道路"], wrong: ["城市中心暴动照搬俄国", "议会道路夺取政权", "和平请愿取得独立"] },
+      { topic: "新民主主义革命", key: "三大法宝", desc: "统一战线、武装斗争、党的建设是中国革命的三大法宝。", tags: ["统一战线", "武装斗争", "党的建设"], wrong: ["土地买卖", "议会竞选", "自由放任"] },
+      { topic: "新民主主义革命", key: "统一战线", desc: "统一战线是中国革命的重要法宝。", tags: ["统一战线", "重要法宝", "团结多数"], wrong: ["关门主义", "孤立主义", "只依靠少数人"] },
+      { topic: "新民主主义革命", key: "武装斗争", desc: "武装斗争是中国革命的主要形式。", tags: ["武装斗争", "主要形式", "人民军队"], wrong: ["单纯议会斗争", "单纯经济斗争", "完全放弃斗争"] },
+      { topic: "新民主主义革命", key: "党的建设", desc: "党的建设是中国革命取得胜利的重要保证。", tags: ["党的建设", "重要保证", "思想建党"], wrong: ["无组织自发行动", "取消党的领导", "只重军事不重政治"] },
+      { topic: "新民主主义革命", key: "新民主主义政治纲领", desc: "新民主主义政治纲领主张建立无产阶级领导的、以工农联盟为基础的各革命阶级联合专政的共和国。", tags: ["无产阶级领导", "工农联盟", "联合专政"], wrong: ["资产阶级专政共和国", "封建君主制", "殖民统治政权"] },
+      { topic: "新民主主义革命", key: "新民主主义经济纲领", desc: "新民主主义经济纲领包括没收封建地主阶级土地归农民所有、没收官僚资本归新民主主义国家所有、保护民族工商业。", tags: ["土地归农民", "没收官僚资本", "保护民族工商业"], wrong: ["没收一切私人工商业", "保护封建土地所有制", "保留官僚资本垄断"] },
+      { topic: "新民主主义革命", key: "新民主主义文化纲领", desc: "新民主主义文化是无产阶级领导的人民大众的反帝反封建文化。", tags: ["无产阶级领导", "人民大众", "反帝反封建"], wrong: ["封建买办文化", "少数贵族文化", "殖民奴化文化"] },
+      { topic: "新民主主义革命", key: "工农联盟", desc: "工农联盟是新民主主义革命统一战线的基础。", tags: ["工农联盟", "统一战线基础", "农民问题"], wrong: ["官僚资本联盟", "地主买办联盟", "殖民者联盟"] },
+
+      { topic: "社会主义改造", key: "过渡时期总路线", desc: "过渡时期总路线概括为一化三改，即社会主义工业化和对农业、手工业、资本主义工商业的社会主义改造。", tags: ["一化三改", "社会主义工业化", "社会主义改造"], wrong: ["一体两翼", "三步走战略", "五位一体"] },
+      { topic: "社会主义改造", key: "一化", desc: "过渡时期总路线中的一化是社会主义工业化。", tags: ["社会主义工业化", "一化", "国家工业化"], wrong: ["农业机械化", "城市商业化", "教育现代化"] },
+      { topic: "社会主义改造", key: "三改", desc: "三改是对农业、手工业、资本主义工商业的社会主义改造。", tags: ["农业", "手工业", "资本主义工商业"], wrong: ["教育", "医疗", "住房"] },
+      { topic: "社会主义改造", key: "农业社会主义改造道路", desc: "农业社会主义改造遵循互助组、初级农业生产合作社、高级农业生产合作社的发展道路。", tags: ["互助组", "初级社", "高级社"], wrong: ["直接公社化", "完全自由买卖土地", "保留地主土地所有制"] },
+      { topic: "社会主义改造", key: "农业合作化原则", desc: "农业合作化坚持自愿互利、典型示范、国家帮助的原则。", tags: ["自愿互利", "典型示范", "国家帮助"], wrong: ["强迫命令", "放任自流", "一刀切冒进"] },
+      { topic: "社会主义改造", key: "手工业改造", desc: "手工业社会主义改造采取由手工业供销小组到供销合作社再到生产合作社的逐步过渡形式。", tags: ["供销小组", "供销合作社", "生产合作社"], wrong: ["立即全部国有化", "完全放任私营", "恢复行会制度"] },
+      { topic: "社会主义改造", key: "资本主义工商业改造", desc: "对资本主义工商业的社会主义改造采取和平赎买的方针。", tags: ["和平赎买", "资本主义工商业", "社会主义改造"], wrong: ["无偿没收一切", "完全保护资本主义", "武力消灭工商业"] },
+      { topic: "社会主义改造", key: "国家资本主义", desc: "国家资本主义是改造资本主义工商业和逐步完成社会主义过渡的重要形式。", tags: ["国家资本主义", "过渡形式", "工商业改造"], wrong: ["私人资本主义原样保留", "封建经济形式", "自然经济形式"] },
+      { topic: "社会主义改造", key: "公私合营", desc: "全行业公私合营是资本主义工商业社会主义改造中的高级形式。", tags: ["公私合营", "全行业", "高级形式"], wrong: ["个体经营是最高形式", "地下经营是最高形式", "行会垄断是最高形式"] },
+      { topic: "社会主义改造", key: "社会主义制度确立", desc: "1956年底社会主义改造基本完成，标志着社会主义基本制度在我国确立。", tags: ["1956年底", "社会主义改造基本完成", "社会主义基本制度"], wrong: ["1949年立即完成", "1978年才开始确立", "三大改造与制度确立无关"] },
+      { topic: "社会主义改造", key: "主要矛盾变化", desc: "社会主义改造基本完成后，我国社会主要矛盾发生变化，人民对于经济文化迅速发展的需要同当前经济文化不能满足人民需要的状况之间的矛盾成为主要矛盾。", tags: ["经济文化需要", "不能满足人民需要", "主要矛盾变化"], wrong: ["帝国主义和中华民族矛盾仍是唯一主要矛盾", "阶级斗争永远是中心", "人与自然矛盾成为唯一矛盾"] },
+      { topic: "社会主义改造", key: "社会主义改造历史经验", desc: "社会主义改造坚持社会主义工业化建设与社会主义改造同时并举。", tags: ["工业化", "社会主义改造", "同时并举"], wrong: ["先改造后永不工业化", "只工业化不改造", "脱离生产力发展"] },
+
+      { topic: "社会主义建设探索", key: "调动一切积极因素", desc: "《论十大关系》提出要调动一切积极因素为社会主义事业服务。", tags: ["论十大关系", "积极因素", "社会主义事业"], wrong: ["只调动少数因素", "否定社会主义建设", "照搬外国模式"] },
+      { topic: "社会主义建设探索", key: "十大关系核心", desc: "《论十大关系》围绕正确处理社会主义建设中的一系列重大关系展开。", tags: ["重大关系", "社会主义建设", "独立探索"], wrong: ["只讲土地革命", "只讲抗日战争", "只讲外交礼仪"] },
+      { topic: "社会主义建设探索", key: "正确处理人民内部矛盾", desc: "毛泽东提出社会主义社会存在敌我矛盾和人民内部矛盾两类不同性质的矛盾。", tags: ["敌我矛盾", "人民内部矛盾", "不同性质"], wrong: ["社会主义社会没有矛盾", "所有矛盾都是敌我矛盾", "矛盾不可区分"] },
+      { topic: "社会主义建设探索", key: "人民内部矛盾处理方针", desc: "正确处理人民内部矛盾要用民主的方法、说服教育的方法。", tags: ["民主方法", "说服教育", "人民内部矛盾"], wrong: ["专政方法", "简单粗暴", "军事压服"] },
+      { topic: "社会主义建设探索", key: "敌我矛盾处理方式", desc: "敌我矛盾需要用专政的方法解决。", tags: ["敌我矛盾", "专政方法", "不同性质"], wrong: ["只靠说服教育", "放任不管", "市场调节解决"] },
+      { topic: "社会主义建设探索", key: "社会主义社会基本矛盾", desc: "社会主义社会基本矛盾仍然是生产关系和生产力、上层建筑和经济基础之间的矛盾。", tags: ["生产关系", "生产力", "上层建筑"], wrong: ["社会主义社会无基本矛盾", "只有国际矛盾", "只有个人矛盾"] },
+      { topic: "社会主义建设探索", key: "社会主义建设道路探索", desc: "以毛泽东同志为主要代表的中国共产党人开始探索适合中国国情的社会主义建设道路。", tags: ["中国国情", "社会主义建设道路", "独立探索"], wrong: ["完全照搬苏联", "放弃社会主义方向", "回到新民主主义革命任务"] },
+      { topic: "社会主义建设探索", key: "工业化道路", desc: "探索中国工业化道路要正确处理重工业、轻工业和农业的关系。", tags: ["重工业", "轻工业", "农业"], wrong: ["只发展重工业不顾农业", "只发展商业不顾工业", "取消工业化"] },
+      { topic: "社会主义建设探索", key: "四个现代化", desc: "实现农业、工业、国防和科学技术现代化是社会主义建设的重要目标。", tags: ["农业现代化", "工业现代化", "科学技术现代化"], wrong: ["封建化", "殖民化", "买办化"] },
+      { topic: "社会主义建设探索", key: "社会主义建设经验教训", desc: "社会主义建设探索形成的重要经验包括必须从中国实际出发、正确认识社会主义社会矛盾。", tags: ["中国实际", "社会矛盾", "独立探索"], wrong: ["脱离国情", "否认矛盾", "照搬照抄"] },
+
+      { topic: "邓小平理论", key: "邓小平理论主题", desc: "邓小平理论围绕什么是社会主义、怎样建设社会主义这一基本问题展开。", tags: ["什么是社会主义", "怎样建设社会主义", "基本问题"], wrong: ["什么是革命、怎样夺取政权", "什么是文化、怎样办教育", "什么是外交、怎样结盟"] },
+      { topic: "邓小平理论", key: "社会主义本质", desc: "社会主义的本质是解放生产力、发展生产力，消灭剥削、消除两极分化，最终达到共同富裕。", tags: ["解放生产力", "发展生产力", "共同富裕"], wrong: ["平均贫穷", "两极分化", "只讲计划不讲发展"] },
+      { topic: "邓小平理论", key: "社会主义根本任务", desc: "社会主义的根本任务是发展生产力。", tags: ["发展生产力", "根本任务", "社会主义建设"], wrong: ["阶级斗争为纲", "平均分配一切", "闭关自守"] },
+      { topic: "邓小平理论", key: "社会主义初级阶段", desc: "我国正处于并将长期处于社会主义初级阶段。", tags: ["长期性", "社会主义初级阶段", "基本国情"], wrong: ["已经超越初级阶段", "不是社会主义社会", "短期就能结束"] },
+      { topic: "邓小平理论", key: "初级阶段主要矛盾", desc: "社会主义初级阶段主要矛盾是人民日益增长的物质文化需要同落后的社会生产之间的矛盾。", tags: ["物质文化需要", "落后社会生产", "主要矛盾"], wrong: ["帝国主义和中华民族矛盾", "封建主义和人民大众矛盾", "人与自然矛盾唯一化"] },
+      { topic: "邓小平理论", key: "党的基本路线", desc: "党在社会主义初级阶段的基本路线概括为一个中心、两个基本点。", tags: ["一个中心", "两个基本点", "基本路线"], wrong: ["一化三改", "三大法宝", "五位一体"] },
+      { topic: "邓小平理论", key: "一个中心", desc: "一个中心是以经济建设为中心。", tags: ["经济建设", "中心工作", "基本路线"], wrong: ["以阶级斗争为中心", "以文化娱乐为中心", "以闭关自守为中心"] },
+      { topic: "邓小平理论", key: "两个基本点", desc: "两个基本点是坚持四项基本原则、坚持改革开放。", tags: ["四项基本原则", "改革开放", "基本路线"], wrong: ["平均主义和闭关自守", "照搬外国和放弃领导", "单纯计划和单纯市场"] },
+      { topic: "邓小平理论", key: "四项基本原则", desc: "四项基本原则是立国之本。", tags: ["四项基本原则", "立国之本", "政治保证"], wrong: ["强国之路", "兴国之要", "富民之策"] },
+      { topic: "邓小平理论", key: "改革开放", desc: "改革开放是强国之路。", tags: ["改革开放", "强国之路", "关键抉择"], wrong: ["立国之本", "封闭之路", "权宜之计"] },
+      { topic: "邓小平理论", key: "三个有利于", desc: "判断改革和各方面工作是非得失的标准是是否有利于发展社会主义社会生产力、增强社会主义国家综合国力、提高人民生活水平。", tags: ["生产力", "综合国力", "人民生活水平"], wrong: ["是否有利于少数人暴富", "是否有利于封闭保守", "是否有利于形式主义"] },
+      { topic: "邓小平理论", key: "计划和市场", desc: "计划和市场都是经济手段，不是社会主义和资本主义的本质区别。", tags: ["经济手段", "计划", "市场"], wrong: ["市场只属于资本主义", "计划只属于社会主义本质", "二者不可并用"] },
+      { topic: "邓小平理论", key: "社会主义市场经济", desc: "建立社会主义市场经济体制是我国经济体制改革的重要目标。", tags: ["社会主义市场经济", "经济体制改革", "市场机制"], wrong: ["完全取消市场", "完全私有化", "恢复自然经济"] },
+      { topic: "邓小平理论", key: "发展是硬道理", desc: "发展才是硬道理是邓小平理论的重要命题。", tags: ["发展", "硬道理", "生产力"], wrong: ["停滞是硬道理", "平均是唯一标准", "封闭是硬道理"] },
+      { topic: "邓小平理论", key: "科学技术是第一生产力", desc: "科学技术是第一生产力。", tags: ["科学技术", "第一生产力", "现代化"], wrong: ["资源消耗是第一生产力", "封建经验是第一生产力", "人海战术是第一生产力"] },
+      { topic: "邓小平理论", key: "三步走战略", desc: "邓小平提出基本实现现代化的三步走发展战略。", tags: ["三步走", "现代化", "发展战略"], wrong: ["一化三改", "三大法宝", "两个确立"] },
+      { topic: "邓小平理论", key: "一国两制", desc: "一国两制的前提和基础是一个中国。", tags: ["一个中国", "两种制度", "国家统一"], wrong: ["两个中国", "一中一台", "地方完全主权"] },
+      { topic: "邓小平理论", key: "和平与发展", desc: "和平与发展是当今时代的主题。", tags: ["和平", "发展", "时代主题"], wrong: ["战争与革命仍是唯一主题", "封闭与对抗", "殖民与掠夺"] },
+
+      { topic: "三个代表", key: "三个代表内容", desc: "中国共产党必须始终代表中国先进生产力的发展要求、中国先进文化的前进方向、中国最广大人民的根本利益。", tags: ["先进生产力", "先进文化", "最广大人民根本利益"], wrong: ["少数人利益", "落后生产方式", "腐朽文化方向"] },
+      { topic: "三个代表", key: "立党之本", desc: "三个代表重要思想是我们党的立党之本、执政之基、力量之源。", tags: ["立党之本", "执政之基", "力量之源"], wrong: ["临时口号", "单项经济政策", "地方治理经验"] },
+      { topic: "三个代表", key: "先进生产力", desc: "代表中国先进生产力的发展要求，要求党推动社会生产力不断发展。", tags: ["先进生产力", "发展要求", "生产力发展"], wrong: ["保护落后生产方式", "否定科技进步", "阻碍改革"] },
+      { topic: "三个代表", key: "先进文化", desc: "代表中国先进文化的前进方向，要求发展面向现代化、面向世界、面向未来的民族的科学的大众的社会主义文化。", tags: ["先进文化", "三个面向", "社会主义文化"], wrong: ["腐朽文化", "封建迷信", "殖民奴化文化"] },
+      { topic: "三个代表", key: "最广大人民根本利益", desc: "代表中国最广大人民的根本利益，是三个代表重要思想的出发点和归宿。", tags: ["最广大人民", "根本利益", "出发点和归宿"], wrong: ["少数集团利益", "官僚资本利益", "殖民者利益"] },
+      { topic: "三个代表", key: "党的建设新的伟大工程", desc: "三个代表重要思想把党的建设新的伟大工程同中国特色社会主义伟大事业联系起来。", tags: ["党的建设", "伟大工程", "中国特色社会主义"], wrong: ["取消党的建设", "只抓经济不抓党建", "党建与事业割裂"] },
+      { topic: "三个代表", key: "执政党建设", desc: "三个代表重要思想回答了建设什么样的党、怎样建设党的问题。", tags: ["建设什么样的党", "怎样建设党", "执政党建设"], wrong: ["只回答农业改造问题", "只回答军事斗争问题", "只回答文化娱乐问题"] },
+      { topic: "三个代表", key: "与时俱进", desc: "与时俱进是马克思主义的理论品质，也是三个代表重要思想的鲜明特征。", tags: ["与时俱进", "理论品质", "创新"], wrong: ["因循守旧", "固步自封", "照搬照抄"] },
+      { topic: "三个代表", key: "发展作为执政兴国第一要务", desc: "发展是党执政兴国的第一要务。", tags: ["发展", "执政兴国", "第一要务"], wrong: ["停滞是第一要务", "形式主义是第一要务", "封闭是第一要务"] },
+      { topic: "三个代表", key: "社会主义政治文明", desc: "发展社会主义民主政治、建设社会主义政治文明是三个代表重要思想的重要内容。", tags: ["民主政治", "政治文明", "社会主义"], wrong: ["封建专制", "殖民制度", "无政府状态"] },
+
+      { topic: "科学发展观", key: "科学发展观第一要义", desc: "科学发展观的第一要义是发展。", tags: ["发展", "第一要义", "科学发展观"], wrong: ["斗争", "封闭", "平均"] },
+      { topic: "科学发展观", key: "科学发展观核心立场", desc: "科学发展观的核心立场是以人为本。", tags: ["以人为本", "核心立场", "人民利益"], wrong: ["以物为本", "以资本为本", "以少数人为本"] },
+      { topic: "科学发展观", key: "科学发展观基本要求", desc: "科学发展观的基本要求是全面协调可持续。", tags: ["全面", "协调", "可持续"], wrong: ["片面", "失衡", "不可持续"] },
+      { topic: "科学发展观", key: "科学发展观根本方法", desc: "科学发展观的根本方法是统筹兼顾。", tags: ["统筹兼顾", "根本方法", "协调关系"], wrong: ["顾此失彼", "单打一", "各自为政"] },
+      { topic: "科学发展观", key: "以人为本内涵", desc: "以人为本强调发展为了人民、发展依靠人民、发展成果由人民共享。", tags: ["为了人民", "依靠人民", "成果共享"], wrong: ["为了资本", "依靠少数人", "成果独享"] },
+      { topic: "科学发展观", key: "全面发展", desc: "全面发展强调经济建设、政治建设、文化建设、社会建设等各方面协调推进。", tags: ["经济建设", "政治建设", "社会建设"], wrong: ["只重经济总量", "只看单一指标", "忽视社会建设"] },
+      { topic: "科学发展观", key: "协调发展", desc: "协调发展要求正确处理城乡、区域、经济社会、人与自然等重大关系。", tags: ["城乡", "区域", "人与自然"], wrong: ["城乡割裂", "区域对立", "人与自然对抗"] },
+      { topic: "科学发展观", key: "可持续发展", desc: "可持续发展强调促进人与自然和谐，实现经济社会永续发展。", tags: ["人与自然", "和谐", "永续发展"], wrong: ["资源无限消耗", "先污染后治理", "只顾眼前"] },
+      { topic: "科学发展观", key: "社会主义和谐社会", desc: "构建社会主义和谐社会是科学发展观的重要内容。", tags: ["和谐社会", "公平正义", "社会建设"], wrong: ["社会撕裂", "两极对立", "只讲效率不讲公平"] },
+      { topic: "科学发展观", key: "和谐社会总要求", desc: "社会主义和谐社会总要求包括民主法治、公平正义、诚信友爱、充满活力、安定有序、人与自然和谐相处。", tags: ["民主法治", "公平正义", "人与自然和谐"], wrong: ["无序混乱", "诚信缺失", "自然对抗"] },
+      { topic: "科学发展观", key: "资源节约型环境友好型社会", desc: "建设资源节约型、环境友好型社会是实现可持续发展的重要要求。", tags: ["资源节约", "环境友好", "可持续发展"], wrong: ["资源浪费型", "环境破坏型", "短期透支型"] },
+      { topic: "科学发展观", key: "党的执政能力建设", desc: "加强党的执政能力建设和先进性建设，是科学发展观相关党建要求的重要内容。", tags: ["执政能力", "先进性建设", "党的建设"], wrong: ["弱化党的建设", "取消执政能力要求", "只重形式不重能力"] },
+
+      { topic: "综合辨析", key: "毛泽东思想形成条件", desc: "毛泽东思想是在中国革命和建设实践中形成和发展起来的。", tags: ["革命实践", "建设实践", "马克思主义中国化"], wrong: ["凭空产生", "照搬外国", "脱离群众实践"] },
+      { topic: "综合辨析", key: "实事求是", desc: "实事求是是马克思主义的根本观点，是毛泽东思想活的灵魂之一。", tags: ["实事求是", "根本观点", "活的灵魂"], wrong: ["主观主义", "本本主义", "经验主义绝对化"] },
+      { topic: "综合辨析", key: "群众路线", desc: "群众路线就是一切为了群众、一切依靠群众，从群众中来、到群众中去。", tags: ["为了群众", "依靠群众", "从群众中来"], wrong: ["脱离群众", "命令主义", "少数人包办"] },
+      { topic: "综合辨析", key: "独立自主", desc: "独立自主强调把国家和民族发展放在自己力量的基点上。", tags: ["独立自主", "自己力量", "民族发展"], wrong: ["完全依附外部", "放弃自主权", "照搬照抄"] },
+      { topic: "综合辨析", key: "解放思想", desc: "解放思想、实事求是是邓小平理论的精髓。", tags: ["解放思想", "实事求是", "理论精髓"], wrong: ["因循守旧", "脱离实际", "主观臆断"] },
+      { topic: "综合辨析", key: "中国特色社会主义道路开创", desc: "党的十一届三中全会以后，中国共产党成功开创了中国特色社会主义。", tags: ["十一届三中全会", "改革开放", "中国特色社会主义"], wrong: ["辛亥革命后开创", "三大改造前开创", "新文化运动中开创"] },
+      { topic: "综合辨析", key: "中国特色社会主义理论体系共同主题", desc: "中国特色社会主义理论体系共同围绕建设和发展中国特色社会主义展开。", tags: ["中国特色社会主义", "建设发展", "理论体系"], wrong: ["恢复资本主义", "回到封建制度", "放弃社会主义"] },
+      { topic: "综合辨析", key: "改革发展稳定关系", desc: "改革是动力，发展是目的，稳定是前提。", tags: ["改革动力", "发展目的", "稳定前提"], wrong: ["稳定无关紧要", "发展不是目的", "改革不需要秩序"] },
+      { topic: "综合辨析", key: "共同富裕目标", desc: "共同富裕是社会主义的本质要求，也是中国特色社会主义的重要目标。", tags: ["共同富裕", "社会主义本质", "重要目标"], wrong: ["两极分化", "少数人富裕", "平均主义停滞"] },
+      { topic: "综合辨析", key: "人民主体地位", desc: "人民群众是历史的创造者，是推动社会发展的决定力量。", tags: ["人民群众", "历史创造者", "决定力量"], wrong: ["少数英雄单独创造历史", "资本单独创造历史", "群众无关历史"] },
+      { topic: "综合辨析", key: "党的思想路线", desc: "党的思想路线的核心是实事求是。", tags: ["思想路线", "实事求是", "核心"], wrong: ["主观主义", "教条主义", "形式主义"] },
+      { topic: "综合辨析", key: "群众观点", desc: "群众观点是无产阶级政党的根本观点。", tags: ["群众观点", "无产阶级政党", "根本观点"], wrong: ["精英主义观点", "官僚主义观点", "少数人观点"] },
+      { topic: "综合辨析", key: "社会主义民主政治", desc: "发展社会主义民主政治必须坚持党的领导、人民当家作主、依法治国有机统一。", tags: ["党的领导", "人民当家作主", "依法治国"], wrong: ["三者相互割裂", "取消党的领导", "以人治代替法治"] },
+      { topic: "综合辨析", key: "社会主义核心价值体系", desc: "社会主义核心价值体系是兴国之魂，决定着中国特色社会主义发展方向。", tags: ["兴国之魂", "发展方向", "价值体系"], wrong: ["可有可无", "只属于经济指标", "决定封建复辟方向"] },
+      { topic: "综合辨析", key: "独立自主和平外交", desc: "独立自主的和平外交政策是我国外交政策的基本立场。", tags: ["独立自主", "和平外交", "基本立场"], wrong: ["依附大国", "军事结盟优先", "霸权扩张"] },
+      { topic: "综合辨析", key: "社会主义精神文明", desc: "社会主义精神文明建设是中国特色社会主义事业的重要组成部分。", tags: ["精神文明", "中国特色社会主义", "重要组成"], wrong: ["只要物质文明", "精神文明无关发展", "文化建设可以取消"] },
+      { topic: "综合辨析", key: "依法治国基本方略", desc: "依法治国是党领导人民治理国家的基本方略。", tags: ["依法治国", "治理国家", "基本方略"], wrong: ["以言代法", "以权压法", "无法治理"] },
+      { topic: "综合辨析", key: "社会主义先进文化", desc: "发展社会主义先进文化要坚持为人民服务、为社会主义服务的方向。", tags: ["为人民服务", "为社会主义服务", "先进文化"], wrong: ["为少数人服务", "为资本逐利服务", "为封建迷信服务"] },
+      { topic: "综合辨析", key: "以经济建设为中心", desc: "坚持以经济建设为中心是兴国之要。", tags: ["经济建设", "中心", "兴国之要"], wrong: ["立国之本", "强国之路", "建军之魂"] },
+      { topic: "综合辨析", key: "对外开放", desc: "对外开放是我国必须长期坚持的基本国策。", tags: ["对外开放", "基本国策", "长期坚持"], wrong: ["临时措施", "闭关锁国", "完全依附外部"] }
+    ];
+
+    function factsFromText(text) {
+      return text.trim().split("\n").filter(Boolean).flatMap(line => {
+        const [topic, key, desc, tagsText, wrongText] = line.split("|");
+        const tags = tagsText.split("、");
+        const wrong = wrongText.split("、");
+        return [
+          { topic, key, desc, tags, wrong },
+          { topic, key: `${key}关键词`, desc: `学习「${key}」要把握${tagsText}等关键词。`, tags, wrong },
+          { topic, key: `${key}易混点`, desc: `「${key}」的正确理解是：${desc}`, tags, wrong }
+        ];
+      });
+    }
+
+    const HISTORY_FACTS = factsFromText(`
+反侵略斗争|鸦片战争|1840年鸦片战争是中国近代史的起点，中国逐步沦为半殖民地半封建社会。|1840年、近代史起点、半殖民地半封建|中国进入社会主义社会、中国完全独立发展资本主义、中国封建社会没有变化
+反侵略斗争|近代中国社会性质|近代中国社会性质是半殖民地半封建社会。|半殖民地、半封建、社会性质|资本主义社会、社会主义社会、原始社会
+反侵略斗争|近代中国主要矛盾|近代中国主要矛盾包括帝国主义和中华民族的矛盾、封建主义和人民大众的矛盾。|帝国主义、中华民族、封建主义|人与自然矛盾、资产阶级内部矛盾、地区发展矛盾
+反侵略斗争|近代中国历史任务|近代中国两大历史任务是争取民族独立人民解放、实现国家富强人民富裕。|民族独立、人民解放、国家富强|维护封建统治、维持殖民秩序、放弃现代化
+反侵略斗争|南京条约|《南京条约》是中国近代史上第一个不平等条约。|南京条约、第一个不平等条约、割地赔款|辛丑条约是第一个、马关条约是第一个、望厦条约是第一个
+反侵略斗争|马关条约|《马关条约》大大加深了中国半殖民地化程度。|马关条约、甲午战争、半殖民地化加深|标志新中国成立、标志社会主义制度确立、结束不平等条约体系
+反侵略斗争|辛丑条约|《辛丑条约》标志中国完全陷入半殖民地半封建社会深渊。|辛丑条约、完全陷入、半殖民地半封建|中国实现民族独立、中国开始改革开放、中国完成工业化
+早期探索|太平天国运动|太平天国运动沉重打击了清王朝统治和外国侵略势力。|太平天国、农民战争、反封建|资产阶级改良运动、无产阶级革命、地主阶级自救运动
+早期探索|天朝田亩制度|《天朝田亩制度》具有平均主义色彩，未能真正实行。|天朝田亩制度、平均主义、农民纲领|资本主义纲领、维新纲领、新民主主义纲领
+早期探索|资政新篇|《资政新篇》是太平天国后期提出的带有资本主义色彩的改革方案。|资政新篇、资本主义色彩、洪仁玕|封建复古纲领、社会主义纲领、土地平均纲领
+早期探索|洋务运动|洋务运动主张中体西用，是地主阶级的自救运动。|中体西用、自强求富、地主阶级|资产阶级革命、无产阶级革命、农民战争
+早期探索|戊戌维新运动|戊戌维新运动是资产阶级维新派试图通过改良道路救亡图存的运动。|维新派、改良、救亡图存|农民起义、地主自救、无产阶级革命
+辛亥革命|三民主义|孙中山三民主义包括民族、民权、民生。|民族、民权、民生|自强求富、民主科学、一化三改
+辛亥革命|辛亥革命性质|辛亥革命是比较完全意义上的资产阶级民主革命。|资产阶级、民主革命、反帝反封建|社会主义革命、农民战争、地主阶级自救
+辛亥革命|辛亥革命功绩|辛亥革命推翻了清王朝统治，结束了中国两千多年的君主专制制度。|清王朝、君主专制、民主共和观念|结束半殖民地状态、完成社会主义改造、建立新中国
+辛亥革命|中华民国临时约法|《中华民国临时约法》是中国历史上第一部具有资产阶级共和国宪法性质的法典。|临时约法、资产阶级共和国、宪法性质|封建法典、社会主义宪法、殖民法规
+五四与建党|新文化运动|新文化运动高举民主和科学两面旗帜。|民主、科学、思想启蒙|自强求富、中体西用、尊孔复古
+五四与建党|五四运动|五四运动是中国新民主主义革命的开端。|五四运动、新民主主义革命、开端|社会主义改造开端、改革开放开端、洋务运动开端
+五四与建党|马克思主义传播|十月革命后马克思主义在中国广泛传播，为中国共产党成立奠定思想基础。|十月革命、马克思主义、思想基础|洋务运动直接传播马克思主义、辛丑条约传播马克思主义、戊戌变法完成建党
+五四与建党|中国共产党成立|1921年中国共产党成立，是开天辟地的大事变。|1921年、中国共产党成立、开天辟地|1911年成立、1949年成立、1978年成立
+五四与建党|中共二大|中共二大第一次明确提出反帝反封建的民主革命纲领。|中共二大、民主革命纲领、反帝反封建|提出过渡时期总路线、提出改革开放、提出三步走战略
+大革命与土地革命|第一次国共合作|第一次国共合作推动了国民革命运动兴起。|国共合作、国民革命、反帝反封建|社会主义改造、改革开放、抗美援朝
+大革命与土地革命|八七会议|八七会议确定了土地革命和武装反抗国民党反动派的总方针。|八七会议、土地革命、武装反抗|改革开放总方针、和平赎买方针、一化三改
+大革命与土地革命|南昌起义|南昌起义打响了武装反抗国民党反动派的第一枪。|南昌起义、武装反抗、第一枪|五四运动、辛亥革命、洋务运动
+大革命与土地革命|井冈山道路|井冈山革命根据地开辟了农村包围城市、武装夺取政权的道路。|井冈山、农村包围城市、武装夺取政权|城市议会道路、全盘西化道路、君主立宪道路
+大革命与土地革命|遵义会议|遵义会议在极其危急关头挽救了党、挽救了红军、挽救了中国革命。|遵义会议、生死攸关、转折点|提出改革开放、完成社会主义改造、建立新中国
+抗日战争|九一八事变|九一八事变标志中国人民抗日战争的起点。|九一八事变、抗战起点、局部抗战|七七事变是局部抗战起点、辛亥革命是抗战起点、五四运动是抗战起点
+抗日战争|七七事变|七七事变标志中国全民族抗战的开始。|七七事变、全民族抗战、卢沟桥|局部抗战结束、改革开放开始、新中国成立
+抗日战争|抗日民族统一战线|抗日民族统一战线是抗日战争胜利的重要法宝。|统一战线、全民族抗战、重要法宝|关门主义、单纯投降、分裂抗战
+抗日战争|持久战|毛泽东《论持久战》科学预见抗日战争将经过战略防御、战略相持、战略反攻三个阶段。|论持久战、三个阶段、战略相持|速胜论、亡国论、投降论
+抗日战争|抗战胜利意义|抗日战争胜利是近代以来中国抗击外敌入侵第一次取得完全胜利的民族解放斗争。|完全胜利、民族解放、近代以来|甲午战争胜利、辛丑战争胜利、鸦片战争胜利
+解放战争与新中国|三大战役|辽沈、淮海、平津三大战役基本消灭国民党主要军事力量。|辽沈、淮海、平津|台儿庄、百团大战、平型关
+解放战争与新中国|七届二中全会|七届二中全会提出党的工作重心由乡村转向城市。|七届二中全会、工作重心、城市|工作重心转向海外、工作重心转向封建复辟、提出一化三改
+解放战争与新中国|新中国成立|1949年中华人民共和国成立，实现了民族独立和人民解放。|1949年、民族独立、人民解放|1956年成立、1978年成立、1921年成立
+社会主义革命建设改革|三大改造|三大改造基本完成标志社会主义基本制度在我国确立。|三大改造、社会主义制度、1956年|辛亥革命完成、五四运动完成、改革开放完成
+社会主义革命建设改革|改革开放|1978年党的十一届三中全会开启改革开放和社会主义现代化建设新时期。|1978年、十一届三中全会、改革开放|1949年开启改革开放、1956年开启改革开放、1921年开启改革开放
+社会主义革命建设改革|新时代|党的十八大以来中国特色社会主义进入新时代。|党的十八大、新时代、中国特色社会主义|辛亥革命后进入新时代、五四运动后进入新时代、洋务运动后进入新时代
+    `);
+
+    const MARX_FACTS = factsFromText(`
+哲学导论|马克思主义组成|马克思主义主要包括马克思主义哲学、马克思主义政治经济学和科学社会主义。|哲学、政治经济学、科学社会主义|经验主义、自由主义、空想平均主义
+哲学导论|哲学基本问题|哲学基本问题是思维和存在的关系问题。|思维、存在、关系问题|个人和社会关系、生产和消费关系、国家和法律关系
+哲学导论|唯物主义|唯物主义认为物质是世界的本原，物质第一性、意识第二性。|物质本原、物质第一性、意识第二性|意识第一性、神灵本原、理念决定物质
+物质与意识|物质范畴|物质是不依赖于人的意识并能为人的意识所反映的客观实在。|客观实在、不依赖意识、可反映|主观想象、纯粹感觉、不可认识
+物质与意识|运动|运动是物质的根本属性和存在方式。|运动、根本属性、存在方式|静止是唯一属性、意识是物质属性、空间是物质目的
+物质与意识|意识本质|意识是人脑的机能，是客观存在的主观映象。|人脑机能、客观存在、主观映象|意识自生、意识决定物质、意识不可认识
+唯物辩证法|联系观点|联系具有客观性、普遍性、多样性和条件性。|客观性、普遍性、多样性|主观随意、孤立片面、无条件
+唯物辩证法|发展观点|发展是前进的上升的运动，实质是新事物产生和旧事物灭亡。|前进上升、新事物、旧事物|简单重复、倒退即发展、永恒不变
+唯物辩证法|矛盾同一性|矛盾同一性是矛盾双方相互依存、相互贯通的性质和趋势。|相互依存、相互贯通、同一性|绝对排斥、毫无联系、单方消灭
+唯物辩证法|矛盾斗争性|矛盾斗争性是矛盾双方相互排斥、相互分离的性质和趋势。|相互排斥、相互分离、斗争性|完全一致、没有差别、永远融合
+唯物辩证法|矛盾普遍性|矛盾存在于一切事物发展过程中，贯穿每一事物发展过程始终。|普遍性、时时有矛盾、处处有矛盾|个别事物无矛盾、矛盾只在自然界、矛盾可以永久消失
+唯物辩证法|矛盾特殊性|不同事物的矛盾各有特点，同一事物不同阶段矛盾也有特点。|特殊性、具体分析、不同特点|千篇一律、无需分析、所有矛盾完全相同
+唯物辩证法|具体问题具体分析|具体问题具体分析是马克思主义活的灵魂。|具体分析、活的灵魂、矛盾特殊性|一刀切、教条主义、抽象空谈
+唯物辩证法|主要矛盾|主要矛盾在事物发展过程中居于支配地位，对事物发展起决定作用。|主要矛盾、支配地位、决定作用|次要矛盾决定一切、无主次之分、矛盾不可分析
+唯物辩证法|质量互变规律|量变是质变的必要准备，质变是量变的必然结果。|量变、质变、必要准备|量变无意义、质变不需量变、二者无关
+唯物辩证法|否定之否定规律|否定之否定规律揭示事物发展的前进性与曲折性的统一。|否定之否定、前进性、曲折性|直线无曲折、循环无前进、完全倒退
+唯物辩证法|辩证否定观|辩证否定是事物自身的否定，是联系和发展的环节，实质是扬弃。|自身否定、联系发展、扬弃|全盘抛弃、外力任意否定、绝对肯定
+认识论|实践本质|实践是人类能动地改造世界的社会性的物质活动。|能动改造、社会性、物质活动|纯粹思想活动、个人幻想、神秘体验
+认识论|实践决定认识|实践是认识的来源、动力、目的和检验真理的唯一标准。|来源、动力、唯一标准|认识先天自足、权威是唯一标准、感觉不可检验
+认识论|感性认识|感性认识是认识的初级阶段，包括感觉、知觉和表象。|感觉、知觉、表象|概念、判断、推理
+认识论|理性认识|理性认识是认识的高级阶段，包括概念、判断和推理。|概念、判断、推理|感觉、知觉、表象
+认识论|认识发展|认识运动是实践、认识、再实践、再认识的循环往复和无限发展。|实践、认识、无限发展|一次完成、脱离实践、永不变化
+认识论|真理客观性|真理的内容是客观的，检验真理的标准也是客观的。|客观内容、客观标准、真理|真理完全主观、真理由投票决定、真理不可检验
+认识论|真理绝对性相对性|真理既具有绝对性又具有相对性，二者辩证统一。|绝对性、相对性、辩证统一|只有绝对无相对、只有相对无客观、二者完全割裂
+历史唯物主义|社会存在|社会存在主要指社会物质生活条件，包括地理环境、人口因素和物质生产方式。|物质生活、人口因素、生产方式|纯粹思想、个人情绪、神秘意志
+历史唯物主义|社会意识|社会意识是社会生活的精神方面，是社会存在的反映。|精神方面、社会存在反映、相对独立性|完全脱离存在、自然物质实体、不可变化
+历史唯物主义|生产力|生产力是人类改造自然使其适合社会需要的物质力量。|劳动者、劳动资料、劳动对象|消费欲望、政治口号、纯粹思想
+历史唯物主义|生产关系|生产关系是人们在物质生产过程中形成的不以人的意志为转移的经济关系。|经济关系、生产过程、客观性|个人心理关系、自然血缘关系、纯粹法律条文
+历史唯物主义|经济基础|经济基础是由社会一定发展阶段的生产力所决定的生产关系总和。|生产关系总和、经济基础、生产力决定|思想总和、法律总和、文化总和
+历史唯物主义|上层建筑|上层建筑包括政治法律制度和社会意识形态等。|政治法律制度、意识形态、经济基础|自然环境、劳动对象、生产工具
+历史唯物主义|社会基本矛盾|生产力和生产关系、经济基础和上层建筑的矛盾是社会基本矛盾。|生产力生产关系、经济基础上层建筑、基本矛盾|个人和自然、消费和娱乐、技术和情绪
+历史唯物主义|人民群众|人民群众是历史的创造者。|人民群众、历史创造者、社会实践|英雄单独创造历史、神秘力量创造历史、少数资本创造历史
+资本主义|商品二因素|商品具有使用价值和价值两个因素。|使用价值、价值、商品|价格和利润、工资和地租、资本和利息
+资本主义|劳动二重性|生产商品的劳动具有具体劳动和抽象劳动二重性。|具体劳动、抽象劳动、二重性|体力劳动和脑力劳动、简单劳动和复杂劳动、必要劳动和剩余劳动
+资本主义|剩余价值|剩余价值是雇佣工人创造的被资本家无偿占有的超过劳动力价值的价值。|雇佣工人、无偿占有、超过劳动力价值|资本家劳动所得全部、自然产生、流通中凭空创造
+资本主义|资本主义基本矛盾|资本主义基本矛盾是生产社会化和生产资料资本主义私人占有之间的矛盾。|生产社会化、私人占有、基本矛盾|使用价值和价格、自然和人口、技术和文化
+科学社会主义|科学社会主义创立|唯物史观和剩余价值学说使社会主义由空想变为科学。|唯物史观、剩余价值学说、科学社会主义|主观愿望、道德说教、宗教幻想
+科学社会主义|共产主义社会|共产主义社会的基本特征包括物质财富极大丰富、人民精神境界极大提高、每个人自由而全面发展。|财富丰富、精神提高、自由全面发展|阶级压迫加深、私有制永恒、贫富分化扩大
+    `);
+
+    const ETHICS_FACTS = factsFromText(`
+人生观|人生观核心|人生观主要包括人生目的、人生态度和人生价值，其中人生目的是核心。|人生目的、人生态度、人生价值|金钱多少是核心、名利地位是核心、消费能力是核心
+人生观|世界观人生观|世界观决定人生观，人生观又对世界观的巩固发展产生影响。|世界观、人生观、相互影响|人生观完全独立、世界观无影响、二者毫无关系
+人生观|个人与社会|个人与社会是对立统一的关系，个人发展离不开社会条件。|个人、社会、对立统一|个人可以脱离社会、社会不影响个人、二者绝对对立
+人生观|人生价值评价|评价人生价值的根本尺度是看一个人的实践活动是否符合社会发展规律、是否促进历史进步。|实践活动、社会发展规律、历史进步|财富多少、外貌条件、娱乐热度
+人生观|正确幸福观|幸福是物质生活和精神生活的统一，个人幸福和社会幸福的统一。|物质生活、精神生活、社会幸福|只等于金钱、只等于享乐、与社会无关
+理想信念|理想信念作用|理想信念是精神之钙，昭示奋斗目标、提供前进动力、提高精神境界。|精神之钙、奋斗目标、前进动力|无关紧要、只属幻想、阻碍成长
+理想信念|理想特征|理想具有超越性、实践性和时代性。|超越性、实践性、时代性|随意性、虚无性、固定不变
+理想信念|信念特征|信念具有执着性、支撑性和多样性。|执着性、支撑性、多样性|短暂性、无用性、纯粹外在性
+理想信念|个人理想社会理想|个人理想要同社会理想相统一，把个人奋斗融入国家和民族事业。|个人理想、社会理想、国家民族|个人理想脱离社会、只顾个人私利、否定社会理想
+理想信念|共同理想|中国特色社会主义共同理想是当代中国人民共同的价值追求。|中国特色社会主义、共同理想、价值追求|封建复辟理想、殖民依附理想、极端个人主义理想
+中国精神|中国精神内涵|中国精神是以爱国主义为核心的民族精神和以改革创新为核心的时代精神。|爱国主义、民族精神、改革创新|享乐主义、封闭保守、拜金主义
+中国精神|民族精神核心|爱国主义是民族精神的核心。|爱国主义、民族精神、核心|个人主义、拜金主义、享乐主义
+中国精神|时代精神核心|改革创新是时代精神的核心。|改革创新、时代精神、核心|因循守旧、闭关自守、盲目排外
+中国精神|爱国主义本质|新时代爱国主义本质是坚持爱国和爱党、爱社会主义高度统一。|爱国、爱党、爱社会主义|爱国与爱党对立、只爱个人利益、否定社会主义
+中国精神|国家安全意识|大学生要增强国家安全意识，自觉维护国家主权、安全、发展利益。|国家安全、主权、发展利益|泄露国家秘密、漠视国家安全、只顾个人流量
+社会主义核心价值观|核心价值观国家层面|社会主义核心价值观国家层面是富强、民主、文明、和谐。|富强、民主、文明|自由平等、爱国敬业、诚信友善
+社会主义核心价值观|核心价值观社会层面|社会主义核心价值观社会层面是自由、平等、公正、法治。|自由、平等、公正|富强民主、爱国敬业、文明和谐
+社会主义核心价值观|核心价值观个人层面|社会主义核心价值观个人层面是爱国、敬业、诚信、友善。|爱国、敬业、诚信|富强民主、自由平等、文明和谐
+社会主义核心价值观|核心价值观重要性|社会主义核心价值观是当代中国精神的集中体现，凝结全体人民共同价值追求。|中国精神、共同价值、集中体现|少数人价值、西方中心价值、临时口号
+社会主义核心价值观|践行核心价值观|践行社会主义核心价值观要勤学、修德、明辨、笃实。|勤学、修德、明辨|空谈、投机、虚荣
+道德|道德本质|道德是反映社会经济关系的特殊意识形态，是调节社会利益关系的行为规范。|经济关系、意识形态、行为规范|自然本能、法律条文全部、个人任性
+道德|道德功能|道德具有认识、规范、调节、激励等功能。|认识、规范、调节|强制判刑、替代法律、消除实践
+道德|中华传统美德|中华传统美德强调重视整体利益、推崇仁爱原则、注重人伦关系、追求精神境界。|整体利益、仁爱、精神境界|极端自私、见利忘义、崇尚欺诈
+道德|中国革命道德|中国革命道德以为实现社会主义和共产主义理想而奋斗为灵魂。|革命理想、社会主义、共产主义|个人享乐、封建等级、殖民依附
+道德|社会主义道德核心|为人民服务是社会主义道德建设的核心。|为人民服务、道德核心、社会主义|为少数人服务、为资本逐利服务、为封建特权服务
+道德|社会主义道德原则|集体主义是社会主义道德建设的原则。|集体主义、道德原则、公共利益|极端个人主义、利己主义、拜金主义
+道德|社会公德|社会公德主要包括文明礼貌、助人为乐、爱护公物、保护环境、遵纪守法。|文明礼貌、保护环境、遵纪守法|损坏公物、破坏环境、扰乱秩序
+道德|职业道德|职业道德主要包括爱岗敬业、诚实守信、办事公道、服务群众、奉献社会。|爱岗敬业、诚实守信、奉献社会|玩忽职守、欺诈失信、以权谋私
+道德|家庭美德|家庭美德主要包括尊老爱幼、男女平等、夫妻和睦、勤俭持家、邻里互助。|尊老爱幼、夫妻和睦、邻里互助|家庭暴力、铺张浪费、邻里冲突
+道德|个人品德|个人品德是在社会道德原则规范基础上形成的稳定心理状态和行为习惯。|个人品德、行为习惯、稳定状态|一时冲动、无关道德、只靠外表
+法治|法律本质|法律是由国家制定或认可并由国家强制力保证实施的行为规范。|国家制定、国家强制力、行为规范|个人习惯、道德建议、自然规律
+法治|社会主义法律本质|我国社会主义法律是党的主张和人民意志的统一。|党的主张、人民意志、统一|少数人意志、资本意志、殖民者意志
+法治|全面依法治国总目标|全面依法治国总目标是建设中国特色社会主义法治体系、建设社会主义法治国家。|法治体系、法治国家、中国特色社会主义|人治国家、无法治理、照搬外国制度
+法治|法治思维|法治思维以法治价值和法治精神为导向，运用法律原则、规则和方法思考处理问题。|法治价值、法律规则、依法办事|人情优先、权力任性、以言代法
+法治|宪法地位|宪法是国家的根本法，具有最高法律地位、法律权威和法律效力。|根本法、最高法律地位、最高效力|普通法规、部门规章、道德倡议
+法治|公民基本义务|公民基本义务包括维护国家统一和民族团结、遵守宪法法律、维护国家安全荣誉利益、依法服兵役和纳税等。|国家统一、遵守法律、依法纳税|破坏统一、逃避纳税、危害安全
+法治|法律权利义务|法律权利和法律义务相互依存、相互贯通，二者具有一致性。|权利、义务、一致性|只要权利不要义务、权利义务绝对割裂、义务可完全取消
+法治|大学生法治素养|大学生要尊法学法守法用法，提升法治素养。|尊法、学法、守法|违法牟利、蔑视规则、逃避责任
+    `);
+
+    function makeQuestionSet(base, facts) {
+      let nextId = (base.length ? Math.max(...base.map(q => q.id)) : 0) + 1;
+      const generated = [];
+      facts.forEach((fact, factIndex) => {
+        const singleItems = rotateOptions([fact.desc, ...fact.wrong.slice(0, 3)], factIndex);
+        generated.push({
+          id: nextId++,
+          type: "single",
+          topic: fact.topic,
+          q: `关于「${fact.key}」的表述，正确的是？`,
+          o: singleItems.map(item => item.text),
+          a: [singleItems.findIndex(item => item.original === 0)],
+          exp: fact.desc
+        });
+
+        const multiWrong = fact.wrong.slice(0, Math.max(1, 4 - fact.tags.length));
+        const multiSource = [...fact.tags.map(text => ({ text, correct: true })), ...multiWrong.map(text => ({ text, correct: false }))];
+        const multiItems = rotateOptions(multiSource, factIndex + 1);
+        generated.push({
+          id: nextId++,
+          type: "multi",
+          topic: fact.topic,
+          q: `学习「${fact.key}」时，应把握的关键词包括？`,
+          o: multiItems.map(item => item.text),
+          a: multiItems.map((item, i) => item.correct ? i : -1).filter(i => i >= 0),
+          exp: `关键词：${fact.tags.join("、")}。${fact.desc}`
+        });
+
+        const falseText = fact.wrong[(factIndex + 1) % fact.wrong.length] || "错误表述";
+        const judgeIsTrue = factIndex % 2 === 0;
+        generated.push({
+          id: nextId++,
+          type: "judge",
+          topic: fact.topic,
+          q: judgeIsTrue ? `「${fact.key}」可以概括为：${fact.desc}` : `「${fact.key}」可以概括为：${falseText}。`,
+          o: ["正确", "错误"],
+          a: [judgeIsTrue ? 0 : 1],
+          exp: fact.desc
+        });
+      });
+      return [...base, ...generated];
+    }
+
+    const COURSE_CONFIG = {
+      xsd: { label: "新思想", full: "习近平新时代中国特色社会主义思想概论", base: BASE_BANK, facts: HIGH_FREQ_FACTS },
+      mao: { label: "毛中特", full: "毛泽东思想和中国特色社会主义理论体系概论", base: [], facts: MAO_FACTS },
+      history: { label: "近现代史", full: "中国近现代史纲要", base: [], facts: HISTORY_FACTS },
+      marx: { label: "马原", full: "马克思主义基本原理", base: [], facts: MARX_FACTS },
+      ethics: { label: "思法", full: "思想道德与法治", base: [], facts: ETHICS_FACTS }
+    };
+
+    const TYPE_LABEL = { single: "单选题", multi: "多选题", judge: "判断题" };
+    const LETTERS = ["A", "B", "C", "D", "E", "F"];
+    const STORE_KEY = "xsd_quiz_progress_v2";
+    const COURSE_KEY = "xsd_quiz_course_v1";
+    const ROUND_SIZE = 60;
+
+    let courseKey = localStorage.getItem(COURSE_KEY) || "xsd";
+    let BANK = makeCourseBank(courseKey);
+    let record = loadRecord();
+    let queue = [];
+    let index = 0;
+    let selected = new Set();
+    let optionStates = {};
+    let round = { ids: [], answers: {}, done: false };
+
+    const $ = id => document.getElementById(id);
+
+    function esc(value) {
+      return String(value)
+        .replaceAll("&", "&amp;")
+        .replaceAll("<", "&lt;")
+        .replaceAll(">", "&gt;")
+        .replaceAll("\"", "&quot;")
+        .replaceAll("'", "&#039;");
+    }
+
+    function loadRecord() {
+      try {
+        return JSON.parse(localStorage.getItem(recordKey())) || { done: 0, correct: 0, wrongIds: [], favIds: [], answered: {}, lastScore: null };
+      } catch {
+        return { done: 0, correct: 0, wrongIds: [], favIds: [], answered: {}, lastScore: null };
+      }
+    }
+
+    function saveRecord() {
+      localStorage.setItem(recordKey(), JSON.stringify(record));
+    }
+
+    function recordKey() {
+      return `${STORE_KEY}_${courseKey}`;
+    }
+
+    function makeCourseBank(key) {
+      const config = COURSE_CONFIG[key] || COURSE_CONFIG.xsd;
+      return makeQuestionSet(config.base, config.facts);
+    }
+
+    function setCourse(key) {
+      if (!COURSE_CONFIG[key] || key === courseKey) return;
+      courseKey = key;
+      localStorage.setItem(COURSE_KEY, courseKey);
+      BANK = makeCourseBank(courseKey);
+      record = loadRecord();
+      renderStatic();
+      buildQueue();
+    }
+
+    function questionType(q) {
+      return TYPE_LABEL[q.type];
+    }
+
+    function candidatePool() {
+      return BANK;
+    }
+
+    function sampleQuestions(pool, size = ROUND_SIZE) {
+      const list = [...pool];
+      for (let i = list.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [list[i], list[j]] = [list[j], list[i]];
+      }
+      return list.slice(0, Math.min(size, list.length));
+    }
+
+    function buildQueue() {
+      queue = sampleQuestions(candidatePool());
+      round = { ids: queue.map(q => q.id), answers: {}, done: false };
+      record.wrongIds = [];
+      saveRecord();
+      index = 0;
+      selected = new Set();
+      optionStates = {};
+      render();
+    }
+
+    function getRoundWrongIds() {
+      return Object.entries(round.answers)
+        .filter(([, answer]) => !answer.correct)
+        .map(([id]) => Number(id));
+    }
+
+    function shuffleQueue() {
+      buildQueue();
+    }
+
+    function renderStatic() {
+      $("btnCourseXsd").classList.toggle("active", courseKey === "xsd");
+      $("btnCourseMao").classList.toggle("active", courseKey === "mao");
+      $("btnCourseHistory").classList.toggle("active", courseKey === "history");
+      $("btnCourseMarx").classList.toggle("active", courseKey === "marx");
+      $("btnCourseEthics").classList.toggle("active", courseKey === "ethics");
+      $("btnCourseXsd").setAttribute("aria-pressed", courseKey === "xsd");
+      $("btnCourseMao").setAttribute("aria-pressed", courseKey === "mao");
+      $("btnCourseHistory").setAttribute("aria-pressed", courseKey === "history");
+      $("btnCourseMarx").setAttribute("aria-pressed", courseKey === "marx");
+      $("btnCourseEthics").setAttribute("aria-pressed", courseKey === "ethics");
+
+      const points = POINTS[courseKey] || POINTS.xsd;
+      $("pointGrid").innerHTML = points.map(p => `
+        <div class="point">
+          <h3>${esc(p.h)}</h3>
+          <p>${esc(p.p)}</p>
+        </div>
+      `).join("");
+
+    }
+
+    function renderStats() {
+      const answered = Object.keys(round.answers).length;
+      const correct = Object.values(round.answers).filter(item => item.correct).length;
+      const rate = answered ? Math.round(correct / answered * 100) : 0;
+      $("sDone").textContent = answered;
+      $("sRate").textContent = rate + "%";
+      $("sWrong").textContent = answered - correct;
+      $("sScope").textContent = `${COURSE_CONFIG[courseKey].label} · 60题`;
+      $("sTotal").textContent = `${queue.length || 0} / ${BANK.length} 题库`;
+      $("bar").style.width = queue.length ? Math.min(100, Math.round(answered / queue.length * 100)) + "%" : "0%";
+      $("btnWrong").classList.toggle("active", false);
+      $("btnWrong").setAttribute("aria-pressed", "false");
+      $("btnWrong").disabled = !round.done || getRoundWrongIds().length === 0;
+    }
+
+    function render() {
+      renderStats();
+      renderReview();
+      $("resultPanel").classList.toggle("show", round.done);
+      document.querySelector(".quiz").classList.toggle("done", round.done);
+      if (round.done) {
+        renderResult();
+        return;
+      }
+      const q = queue[index];
+      if (!q) {
+        $("counter").textContent = "暂无题目";
+        $("questionMeta").innerHTML = `<span class="badge red">当前筛选无题</span>`;
+        $("questionText").textContent = "这个筛选条件下没有题目。可以切回全部题型，或先答错一些题再使用错题模式。";
+        $("options").innerHTML = "";
+        $("feedback").className = "feedback";
+        $("feedback").innerHTML = "";
+      $("btnNext").disabled = true;
+      $("btnStar").disabled = true;
+      return;
+      }
+
+      const saved = round.answers[q.id];
+      const isAnswered = Boolean(saved);
+      const displaySelected = saved ? new Set(saved.picks) : selected;
+      $("btnNext").disabled = !isAnswered || index >= queue.length - 1;
+      $("btnStar").disabled = false;
+      $("counter").textContent = `第 ${index + 1} / ${queue.length} 题`;
+      $("questionMeta").innerHTML = `
+        <span class="badge red">${esc(questionType(q))}</span>
+        <span class="badge">${esc(COURSE_CONFIG[courseKey].label)}</span>
+        <span class="badge">${esc(q.topic)}</span>
+        <span class="badge">考点：${esc(shortPoint(q.topic))}</span>
+      `;
+      $("questionText").textContent = q.q;
+      $("btnStar").textContent = record.favIds.includes(q.id) ? "取消收藏" : "收藏本题";
+      $("btnNext").textContent = index >= queue.length - 1 ? "本轮结束" : "下一题";
+
+      $("options").innerHTML = q.o.map((text, i) => {
+        const isSel = displaySelected.has(i);
+        const isCorrect = q.a.includes(i);
+        const instantCorrect = optionStates[i] === "correct";
+        const instantWrong = optionStates[i] === "wrong";
+        const cls = [
+          "option",
+          isSel ? "selected" : "",
+          (isAnswered && isCorrect) || instantCorrect ? "correct" : "",
+          (isAnswered && isSel && !isCorrect) || instantWrong ? "wrong" : "",
+          isAnswered ? "locked" : ""
+        ].filter(Boolean).join(" ");
+        return `<button class="${cls}" data-option="${i}" ${isAnswered ? "disabled" : ""}>
+          <span class="mark">${q.type === "judge" ? (i === 0 ? "对" : "错") : LETTERS[i]}</span>
+          <span>${esc(text)}</span>
+        </button>`;
+      }).join("");
+
+      document.querySelectorAll("[data-option]").forEach(btn => {
+        btn.onclick = () => chooseOption(Number(btn.dataset.option));
+      });
+
+      if (isAnswered) showFeedback();
+      else if (q.type === "multi" && selected.size) {
+        $("feedback").className = "feedback show";
+        $("feedback").innerHTML = "<strong>已选正确项</strong><p>多选题继续选择，点错会立即判错；选全正确项即判对。</p>";
+      }
+      else {
+        $("feedback").className = "feedback";
+        $("feedback").innerHTML = "";
+      }
+    }
+
+    function getRoundScore() {
+      const correct = Object.values(round.answers).filter(item => item.correct).length;
+      return queue.length ? Math.round(correct / queue.length * 100) : 0;
+    }
+
+    function renderResult() {
+      const correct = Object.values(round.answers).filter(item => item.correct).length;
+      const total = queue.length || ROUND_SIZE;
+      const score = getRoundScore();
+      $("scoreNumber").textContent = score;
+      $("scoreTitle").textContent = score >= 90 ? "很稳，继续保持" : score >= 75 ? "基础不错，回刷错题" : "建议再刷一轮";
+      $("scoreText").textContent = `本轮 ${total} 道题，答对 ${correct} 道，答错 ${total - correct} 道，满分 100 分。`;
+    }
+
+    function shortPoint(topic) {
+      const map = {
+        "总论": "核心概念",
+        "方法论": "立场观点方法",
+        "发展": "现代化与高质量发展",
+        "人民": "人民立场",
+        "法治": "依法治国",
+        "文化": "文化自信",
+        "生态": "生态文明",
+        "安全": "总体国家安全观",
+        "强军": "强军目标",
+        "外交": "人类命运共同体",
+        "党建": "全面从严治党",
+        "导论": "马克思主义中国化",
+        "新民主主义革命": "革命理论",
+        "社会主义改造": "一化三改",
+        "社会主义建设探索": "建设道路探索",
+        "邓小平理论": "社会主义本质",
+        "三个代表": "党的建设",
+        "科学发展观": "以人为本",
+        "综合辨析": "易混考点",
+        "反侵略斗争": "近代国情",
+        "早期探索": "救亡探索",
+        "辛亥革命": "民主革命",
+        "五四与建党": "开天辟地",
+        "大革命与土地革命": "革命道路",
+        "抗日战争": "民族解放",
+        "解放战争与新中国": "人民解放",
+        "社会主义革命建设改革": "历史转折",
+        "哲学导论": "哲学基础",
+        "物质与意识": "唯物论",
+        "唯物辩证法": "辩证法",
+        "认识论": "实践认识",
+        "历史唯物主义": "社会历史观",
+        "资本主义": "政治经济学",
+        "科学社会主义": "社会主义",
+        "人生观": "人生价值",
+        "理想信念": "精神之钙",
+        "中国精神": "爱国创新",
+        "社会主义核心价值观": "价值准则",
+        "道德": "道德修养"
+      };
+      return map[topic] || "综合";
+    }
+
+    function chooseOption(i) {
+      const q = queue[index];
+      if (!q || round.answers[q.id]) return;
+      if (q.type === "multi") {
+        selected.add(i);
+        if (q.a.includes(i)) {
+          optionStates[i] = "correct";
+          const complete = q.a.every(answer => selected.has(answer));
+          if (complete) finalizeAnswer(q, true);
+        } else {
+          optionStates[i] = "wrong";
+          finalizeAnswer(q, false);
+        }
+      } else {
+        selected = new Set([i]);
+        optionStates[i] = q.a.includes(i) ? "correct" : "wrong";
+        finalizeAnswer(q, q.a.includes(i));
+      }
+      render();
+    }
+
+    function finalizeAnswer(q, correct) {
+      if (round.answers[q.id]) return;
+      round.answers[q.id] = { correct, picks: [...selected] };
+      record.done += 1;
+      if (correct) record.correct += 1;
+      record.answered[q.id] = correct;
+      if (Object.keys(round.answers).length >= queue.length) {
+        round.done = true;
+        record.lastScore = getRoundScore();
+      }
+      saveRecord();
+    }
+
+    function showFeedback() {
+      const q = queue[index];
+      const saved = round.answers[q.id];
+      const correct = saved?.correct;
+      const answer = q.a.map(i => q.type === "judge" ? q.o[i] : LETTERS[i]).join("、");
+      const status = correct ? "回答正确" : "回答有误";
+      $("feedback").className = "feedback show";
+      $("feedback").innerHTML = `<strong>${esc(status)}：${esc(answer)}</strong><p>${esc(q.exp)}</p>`;
+    }
+
+    function move(delta) {
+      if (!queue.length) return;
+      index = Math.max(0, Math.min(queue.length - 1, index + delta));
+      const q = queue[index];
+      selected = new Set(round.answers[q.id]?.picks || []);
+      optionStates = {};
+      render();
+    }
+
+    function toggleFav() {
+      const q = queue[index];
+      if (!q) return;
+      if (record.favIds.includes(q.id)) {
+        record.favIds = record.favIds.filter(id => id !== q.id);
+      } else {
+        record.favIds.push(q.id);
+      }
+      saveRecord();
+      render();
+    }
+
+    function renderReview() {
+      const wrongIds = getRoundWrongIds();
+      $("wrongBox").innerHTML = round.done
+        ? miniList(wrongIds, "本轮没有错题，漂亮。", true)
+        : `<p class="empty">本轮完成并出分后，这里会显示错题和解析。</p>`;
+      $("favBox").innerHTML = miniList(record.favIds, "还没有收藏。遇到易混题可以点「收藏本题」。");
+      document.querySelectorAll("[data-jump]").forEach(btn => {
+        btn.onclick = () => jumpTo(Number(btn.dataset.jump));
+      });
+    }
+
+    function miniList(ids, emptyText, showExp = false) {
+      if (!ids.length) return `<p class="empty">${emptyText}</p>`;
+      return ids.map(id => {
+        const q = BANK.find(item => item.id === id);
+        if (!q) return "";
+        return `<div class="mini-item">
+          <strong>${esc(questionType(q))} · ${esc(q.topic)}</strong>
+          <span>${esc(q.q)}</span>
+          ${showExp ? `<p>${esc(q.exp)}</p>` : ""}
+          ${showExp ? "" : `<button class="small" data-jump="${q.id}">跳到此题</button>`}
+        </div>`;
+      }).join("");
+    }
+
+    function jumpTo(id) {
+      const pos = queue.findIndex(q => q.id === id);
+      if (pos >= 0) {
+        index = pos;
+        selected = new Set();
+        render();
+      }
+    }
+
+    $("btnCourseXsd").onclick = () => setCourse("xsd");
+    $("btnCourseMao").onclick = () => setCourse("mao");
+    $("btnCourseHistory").onclick = () => setCourse("history");
+    $("btnCourseMarx").onclick = () => setCourse("marx");
+    $("btnCourseEthics").onclick = () => setCourse("ethics");
+    $("btnNext").onclick = () => move(1);
+    $("btnStar").onclick = toggleFav;
+    $("btnShuffle").onclick = shuffleQueue;
+    $("btnWrong").onclick = () => {
+      const box = $("wrongBox");
+      const top = box.getBoundingClientRect().top + window.pageYOffset - 18;
+      window.scrollTo({ top, behavior: "smooth" });
+    };
+    $("btnReset").onclick = () => {
+      if (!confirm("确定清空本浏览器中的刷题进度、错题和收藏吗？")) return;
+      record = { done: 0, correct: 0, wrongIds: [], favIds: [], answered: {}, lastScore: null };
+      saveRecord();
+      buildQueue();
+    };
+    $("btnRestart").onclick = () => {
+      buildQueue();
+    };
+    $("btnReviewWrong").onclick = () => {
+      const box = $("wrongBox");
+      const top = box.getBoundingClientRect().top + window.pageYOffset - 18;
+      window.scrollTo({ top, behavior: "smooth" });
+    };
+
+    document.addEventListener("keydown", event => {
+      if (event.target.closest("button,input,select,textarea")) return;
+      const q = queue[index];
+      if (!q) return;
+      const key = event.key.toLowerCase();
+      const pos = ["a", "b", "c", "d", "e", "f"].indexOf(key);
+      if (pos >= 0 && pos < q.o.length) chooseOption(pos);
+      if (event.key === "ArrowRight") move(1);
+      if (event.key === "ArrowLeft") move(-1);
+    });
+
+    renderStatic();
+    buildQueue();
+  </script>
+</body>
+</html>
