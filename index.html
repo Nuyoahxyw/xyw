@@ -1,0 +1,73 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="light">
+  <meta name="description" content="离线 C、C++、C#、Python 关键词刷题、发音与详细解释工具">
+  <title>Keyword Lab - C / C++ / C# / Python 关键词刷题</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div class="app-shell">
+    <aside class="sidebar" aria-label="主导航">
+      <div class="brand">
+        <div class="brand-mark" id="brandMark" aria-hidden="true">C#</div>
+        <div>
+          <strong>Keyword Lab</strong>
+          <span>关键词训练场</span>
+        </div>
+      </div>
+
+      <div class="language-switch" aria-label="选择编程语言">
+        <button class="language-button is-active" type="button" data-language="csharp">C#</button>
+        <button class="language-button" type="button" data-language="c">C</button>
+        <button class="language-button" type="button" data-language="cpp">C++</button>
+        <button class="language-button" type="button" data-language="python" aria-label="Python" title="Python">Py</button>
+      </div>
+
+      <nav class="nav-list">
+        <button class="nav-item is-active" data-view="practice" type="button">
+          <span class="nav-index">01</span><span>开始练习</span>
+        </button>
+        <button class="nav-item" data-view="dictionary" type="button">
+          <span class="nav-index">02</span><span>关键词典</span>
+        </button>
+        <button class="nav-item" data-view="wrong" type="button">
+          <span class="nav-index">03</span><span>错题复习</span>
+        </button>
+      </nav>
+
+      <div class="side-progress" aria-label="学习进度">
+        <div class="progress-heading"><span>总体掌握</span><strong id="masteryPercent">0%</strong></div>
+        <div class="progress-track"><span id="masteryBar"></span></div>
+        <dl>
+          <div><dt>已练</dt><dd id="seenCount">0</dd></div>
+          <div><dt>正确</dt><dd id="correctRate">0%</dd></div>
+          <div><dt>错题</dt><dd id="wrongCount">0</dd></div>
+        </dl>
+        <button class="side-reset" type="button" data-reset-progress>重置学习记录</button>
+      </div>
+    </aside>
+
+    <main class="main-area">
+      <header class="topbar">
+        <button class="mobile-menu" id="mobileMenu" type="button" aria-label="打开导航" aria-expanded="false">菜单</button>
+        <div>
+          <p class="eyebrow" id="viewEyebrow">DAILY PRACTICE</p>
+          <h1 id="viewTitle">今天，从一个关键词开始</h1>
+        </div>
+        <button class="quiet-button" id="resetProgress" type="button" data-reset-progress>重置进度</button>
+      </header>
+      <div id="app" aria-live="polite"></div>
+    </main>
+  </div>
+
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+  <script src="data.js"></script>
+  <script src="data-c.js"></script>
+  <script src="data-cpp.js"></script>
+  <script src="data-python.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
