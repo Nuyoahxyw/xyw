@@ -8,6 +8,10 @@
 
 [https://nuyoahxyw.github.io/xyw/](https://nuyoahxyw.github.io/xyw/)
 
+![编程语言关键词训练场界面](screenshots/keyword-lab.png)
+
+*界面预览：左侧切换语言与学习视图，中间完成四选一练习，右侧按分类、类型、难度和题量生成题目。*
+
 用于系统学习 C#、C、C++ 与 Python 的语言关键字。页面把保留关键字、上下文关键字和软关键字分开整理，每个词条均包含 IPA 音标、中文近似读音、详细解释、最小代码示例和容易混淆的知识点。
 
 题库范围：
@@ -32,6 +36,10 @@
 
 [https://nuyoahxyw.github.io/xyw/audio-converter.html](https://nuyoahxyw.github.io/xyw/audio-converter.html)
 
+![音视频格式转换器界面](screenshots/audio-converter.png)
+
+*界面预览：顶部切换音频转 MP3 或视频转 MP4，左侧拖入文件并设置输出参数，右侧查看波形、队列、进度与下载结果。*
+
 用于在浏览器中批量转换常见音频和视频文件。文件会在本机解码、编码并生成下载结果，不会上传到远程服务器。页面提供“音频转 MP3”和“视频转 MP4”两种工作模式。
 
 特点：
@@ -51,6 +59,10 @@
 在线地址：
 
 [https://nuyoahxyw.github.io/xyw/sizheng-quiz.html](https://nuyoahxyw.github.io/xyw/sizheng-quiz.html)
+
+![思政课程刷题库界面](screenshots/sizheng-quiz.png)
+
+*界面预览：顶部切换五门课程，左侧显示答题统计和高频考点，主区域完成随机题目并即时查看判断结果。*
 
 用于高校思政课程期末复习，包含单选题、多选题和判断题。选择课程后，页面会从对应完整题库中随机抽取 60 道题；点选后立即显示正误，完成整轮后按 100 分制计算成绩。
 
