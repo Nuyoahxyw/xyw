@@ -31,6 +31,7 @@ Assumptions:
       --night-2: #14181d;
       --shadow: 0 28px 80px rgba(24, 22, 16, 0.13);
       --shadow-tight: 0 12px 28px rgba(24, 22, 16, 0.10);
+      --magic-glow: 0 0 0 1px rgba(255, 255, 255, 0.75), 0 24px 72px rgba(12, 138, 114, 0.16);
       --radius: 8px;
     }
 
@@ -44,6 +45,7 @@ Assumptions:
     }
 
     body {
+      position: relative;
       margin: 0;
       min-height: 100vh;
       color: var(--ink);
@@ -64,6 +66,27 @@ Assumptions:
 
     button {
       border: 0;
+    }
+
+    body::before {
+      content: "";
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      z-index: 0;
+      background:
+        radial-gradient(circle at 18% 20%, rgba(12, 138, 114, 0.12), transparent 22%),
+        radial-gradient(circle at 82% 18%, rgba(196, 123, 19, 0.12), transparent 24%),
+        linear-gradient(90deg, rgba(12, 138, 114, 0.055) 1px, transparent 1px),
+        linear-gradient(0deg, rgba(196, 123, 19, 0.045) 1px, transparent 1px);
+      background-size: auto, auto, 64px 64px, 64px 64px;
+      mask-image: linear-gradient(180deg, #000 0%, rgba(0,0,0,0.72) 48%, transparent 100%);
+      animation: magic-grid-drift 18s linear infinite;
+    }
+
+    @keyframes magic-grid-drift {
+      0% { background-position: 0 0, 0 0, 0 0, 0 0; }
+      100% { background-position: 0 0, 0 0, 64px 64px, 64px 64px; }
     }
 
     .app {
@@ -211,9 +234,28 @@ Assumptions:
     }
 
     .mode-switch button.active {
+      position: relative;
+      overflow: hidden;
       color: #fff;
       background: linear-gradient(180deg, #2b3037, var(--night-2));
       box-shadow: 0 9px 18px rgba(20, 24, 29, 0.2), inset 0 1px 0 rgba(255, 255, 255, 0.12);
+    }
+
+    .mode-switch button.active::after,
+    .primary::after,
+    .file-button::after {
+      content: "";
+      position: absolute;
+      inset: -60% -35%;
+      background: linear-gradient(115deg, transparent 32%, rgba(255,255,255,0.34) 48%, transparent 64%);
+      transform: translateX(-70%);
+      animation: shiny-sweep 3.8s ease-in-out infinite;
+      pointer-events: none;
+    }
+
+    @keyframes shiny-sweep {
+      0%, 44% { transform: translateX(-70%); }
+      70%, 100% { transform: translateX(70%); }
     }
 
     .workspace {
@@ -225,11 +267,25 @@ Assumptions:
 
     .tool-panel,
     .queue-panel {
+      position: relative;
       background: rgba(255, 255, 255, 0.88);
       border: 1px solid var(--line);
       border-radius: var(--radius);
-      box-shadow: var(--shadow);
+      box-shadow: var(--shadow), var(--magic-glow);
       backdrop-filter: blur(14px);
+    }
+
+    .tool-panel::before,
+    .queue-panel::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      border-radius: inherit;
+      padding: 1px;
+      background: linear-gradient(135deg, rgba(12,138,114,0.34), rgba(255,255,255,0.22), rgba(196,123,19,0.26));
+      mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+      mask-composite: exclude;
+      pointer-events: none;
     }
 
     .tool-panel {
@@ -374,6 +430,8 @@ Assumptions:
     }
 
     .file-button {
+      position: relative;
+      overflow: hidden;
       display: inline-flex;
       align-items: center;
       justify-content: center;
@@ -571,6 +629,8 @@ Assumptions:
     }
 
     .primary {
+      position: relative;
+      overflow: hidden;
       padding: 0 16px;
       background: linear-gradient(180deg, #2b3037, var(--night-2));
       color: #fff;
@@ -1267,7 +1327,7 @@ Assumptions:
               <span>音量标准化，适合多首歌音量差异较大时使用</span>
             </label>
             <div class="video-note is-hidden" data-video-only>
-              视频转 MP4 使用浏览器可播放格式进行本地录制，转换速度接近视频时长；超大文件会比较吃内存。
+              视频转 MP4 支持 WebM、MOV、M4V、M4S 等浏览器可播放视频；M4S 需是可独立播放的非加密片段。转换速度接近视频时长，超大文件会比较吃内存。
             </div>
           </div>
 
@@ -1442,7 +1502,7 @@ Assumptions:
 
     function addFiles(fileList) {
       const matcher = state.mode === "video"
-        ? file => file.type.startsWith("video/") || /\.(mp4|webm|mov|m4v|ogv|avi|mkv)$/i.test(file.name)
+        ? file => file.type.startsWith("video/") || /\.(mp4|webm|mov|m4v|m4s|ogv|avi|mkv)$/i.test(file.name)
         : file => file.type.startsWith("audio/") || /\.(flac|m4a|aac|ogg|opus|wav|aiff?|mp3)$/i.test(file.name);
       const files = Array.from(fileList).filter(matcher);
       const skipped = fileList.length - files.length;
@@ -1886,20 +1946,20 @@ Assumptions:
 
       els.pageTitle.textContent = isVideo ? "视频转 MP4" : "音频转 MP3";
       els.pageSubtitle.textContent = isVideo
-        ? "拖入 WebM、MOV、M4V 等浏览器可播放视频，本地录制转换为 MP4。"
+        ? "拖入 WebM、MOV、M4V、M4S 等浏览器可播放视频，本地录制转换为 MP4。"
         : "拖入 WAV、FLAC、M4A、AAC、OGG、OPUS 等音频，本地转换后直接下载。";
       els.formatStrip.innerHTML = isVideo
-        ? "<span>WEBM</span><span>MOV</span><span>M4V</span><span>OGV</span><span>MP4</span>"
+        ? "<span>WEBM</span><span>MOV</span><span>M4V</span><span>M4S</span><span>OGV</span><span>MP4</span>"
         : "<span>WAV</span><span>FLAC</span><span>M4A</span><span>AAC</span><span>OGG</span><span>OPUS</span>";
       els.dropTitle.textContent = isVideo ? "把视频放进来" : "把音频放进来";
       els.dropHint.textContent = isVideo
-        ? "浏览器本地处理，转换速度接近视频实际时长。"
+        ? "浏览器本地处理，支持可播放 M4S 片段，转换速度接近视频实际时长。"
         : "批量处理，不经过服务器。首次转换会加载 MP3 编码器。";
       els.fileButtonText.textContent = isVideo ? "选择视频" : "选择音频";
       els.settingsHint.textContent = isVideo ? "格式固定为 .mp4" : "格式固定为 .mp3";
       els.bitrateLabel.textContent = isVideo ? "音频码率" : "比特率";
       els.fileInput.accept = isVideo
-        ? "video/*,.mp4,.webm,.mov,.m4v,.ogv,.avi,.mkv"
+        ? "video/*,.mp4,.webm,.mov,.m4v,.m4s,.ogv,.avi,.mkv"
         : "audio/*,.flac,.m4a,.aac,.ogg,.opus,.wav,.aiff,.aif,.mp3";
       els.waveEmpty.textContent = isVideo ? "选择文件后显示视频缩略图" : "选择文件后显示音频波形";
       if (isVideo) {
